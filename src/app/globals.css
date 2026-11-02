@@ -152,7 +152,8 @@
   }
 }
 
-/* Nội dung HTML từ Moodle (Page, mô tả khóa, label) */
+/* Nội dung HTML từ Moodle (Page, mô tả khóa, label). Đặt trong layer để utility ghi đè được. */
+@layer components {
 .moodle-content {
   @apply text-[15px] leading-7 text-foreground;
 }
@@ -184,4 +185,8 @@
 .moodle-content th,
 .moodle-content td {
   @apply border border-border px-3 py-2 text-left;
+}
+.moodle-content > :first-child {
+  @apply mt-0;
+}
 }
