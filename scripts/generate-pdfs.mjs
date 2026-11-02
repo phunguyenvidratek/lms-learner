@@ -27,7 +27,7 @@ const fontFaces = [400, 600, 700]
   .flatMap((w) => ["latin", "vietnamese"].map((s) => `@font-face{font-family:BVP;font-weight:${w};src:url(${font(w, s)}) format("woff2");}`))
   .join("\n");
 
-const html = (course, n, body) => `<!doctype html><html lang="vi"><head><meta charset="utf-8"><style>
+const html = (course, n, body) => `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${course.name} - Phần ${n}</title><style>
 ${fontFaces}
 @page { size: A4; margin: 0; }
 * { box-sizing: border-box; }

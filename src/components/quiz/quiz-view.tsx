@@ -38,8 +38,8 @@ type Mode = { name: "intro" } | { name: "attempt" } | { name: "summary" } | { na
 
 function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-      <Icon className="size-5 shrink-0 text-primary" />
+    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-3 sm:px-4">
+      <Icon className="hidden size-5 shrink-0 text-primary sm:block" />
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="font-semibold">{value}</p>
@@ -313,7 +313,7 @@ export function QuizView({ courseId, cmid }: { courseId: number; cmid: number })
         </p>
         <MoodleHtml html={quiz.intro} className="mt-4" />
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat icon={ClipboardCheck} label="Số câu" value={`${questions.length} câu`} />
           <Stat icon={Timer} label="Thời gian" value={quiz.timelimit ? `${quiz.timelimit / 60} phút` : "Không giới hạn"} />
           <Stat icon={Target} label="Điểm đạt" value={`${quiz.gradepass}/${quiz.grade}`} />
@@ -463,7 +463,7 @@ function ResultPanel({
 
       <div className="px-4 py-8 sm:px-8">
         <div className="mx-auto max-w-3xl">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <Stat icon={Target} label="Điểm lần này" value={`${formatGrade(attempt.grade)}/${quiz.grade}`} />
             <Stat icon={Award} label="Điểm cao nhất" value={`${formatGrade(summary.best ?? 0)}/${quiz.grade}`} />
             <Stat icon={RotateCcw} label="Lượt còn lại" value={`${summary.attemptsLeft}/${quiz.attempts}`} />
