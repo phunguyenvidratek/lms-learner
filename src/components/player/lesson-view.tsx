@@ -192,13 +192,13 @@ export function LessonView({
 }) {
   const { course, actions } = useLearning();
   const view = course(courseId)!;
-  const module = view.sections.flatMap((s) => s.modules).find((m) => m.id === cmid)!;
+  const cm = view.sections.flatMap((s) => s.modules).find((m) => m.id === cmid)!;
   const { prev, next } = useNeighbours(view, cmid);
-  const visible = module.uservisible;
+  const visible = cm.uservisible;
 
   // LEARN-10: ghi nhận đã xem khi mở bài
   useEffect(() => {
-    if (visible) actions.viewModule(courseId, module);
+    if (visible) actions.viewModule(courseId, cm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, cmid, visible]);
 
@@ -208,9 +208,9 @@ export function LessonView({
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-muted">
           <Lock className="size-6 text-muted-foreground" />
         </div>
-        <h1 className="mt-4 text-xl font-bold">{module.name}</h1>
+        <h1 className="mt-4 text-xl font-bold">{cm.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Bài học chưa mở. <MoodleHtml inline html={module.availabilityinfo ?? ""} />.
+          Bài học chưa mở. <MoodleHtml inline html={cm.availabilityinfo ?? ""} />.
         </p>
         <Button asChild className="mt-6">
           <Link href={view.next ? moduleHref(courseId, view.next) : `/courses/${courseId}`}>Đến bài cần học</Link>
@@ -219,8 +219,8 @@ export function LessonView({
     );
   }
 
-  const isVideo = module.modname === "drivevideo";
-  const source = isVideo ? resolveVideoSource(module) : null;
+  const isVideo = cm.modname === "drivevideo";
+  const source = isVideo ? resolveVideoSource(cm) : null;
 
   return (
     <div>
@@ -228,10 +228,10 @@ export function LessonView({
         <div className="group/video relative bg-player">
           <div className="mx-auto max-w-[calc((100dvh-3.5rem-9rem)*16/9)]">
             <VideoPlayer
-              cmid={module.id}
+              cmid={cm.id}
               source={source}
-              title={module.name}
-              onReachEnd={source.kind === "file" ? () => actions.completeModule(module.id) : undefined}
+              title={cm.name}
+              onReachEnd={source.kind === "file" ? () => actions.completeModule(cm.id) : undefined}
             />
           </div>
           {prev && (
@@ -254,10 +254,10 @@ export function LessonView({
           )}
         </div>
       )}
-      {module.modname === "page" && <PageContent module={module} html={pageHtml} />}
-      {module.modname === "resource" && <ResourceContent module={module} />}
-      {module.modname === "url" && <UrlContent module={module} />}
-      {module.modname === "assign" && <UnsupportedContent module={module} />}
+      {cm.modname === "page" && <PageContent module={cm} html={pageHtml} />}
+      {cm.modname === "resource" && <ResourceContent module={cm} />}
+      {cm.modname === "url" && <UrlContent module={cm} />}
+      {cm.modname === "assign" && <UnsupportedContent module={cm} />}
 
       <div className="border-b px-4 py-4 sm:px-8">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
@@ -269,15 +269,15 @@ export function LessonView({
             {view.info.fullname}
           </Link>
           <ChevronRight className="size-3" />
-          <span className="text-foreground">{module.name}</span>
+          <span className="text-foreground">{cm.name}</span>
         </nav>
-        <div className={cn("mt-2 flex flex-wrap items-center justify-between gap-3", !isVideo && module.modname !== "resource" && "mt-1")}>
-          {isVideo || module.modname === "resource" ? (
-            <h1 className="text-lg font-bold sm:text-xl">{module.name}</h1>
+        <div className={cn("mt-2 flex flex-wrap items-center justify-between gap-3", !isVideo && cm.modname !== "resource" && "mt-1")}>
+          {isVideo || cm.modname === "resource" ? (
+            <h1 className="text-lg font-bold sm:text-xl">{cm.name}</h1>
           ) : (
             <span />
           )}
-          <CompletionControl module={module} />
+          <CompletionControl module={cm} />
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
           <NavButton courseId={courseId} module={prev} dir="prev" />
@@ -285,7 +285,7 @@ export function LessonView({
         </div>
       </div>
 
-      <LessonTabs view={view} module={module} discussions={discussions} />
+      <LessonTabs view={view} module={cm} discussions={discussions} />
     </div>
   );
 }

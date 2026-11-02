@@ -6,6 +6,7 @@ import { Award, Bell, BookOpen, CheckCheck, ClipboardCheck, Megaphone, MessageCi
 import { EmptyState } from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
 import { useLearning } from "@/lib/store/learning-store";
+import { useNow } from "@/lib/use-now";
 import { cn, formatDateTime, formatRelative } from "@/lib/utils";
 import type { Notification } from "@/types/moodle";
 
@@ -25,7 +26,7 @@ export function NotificationsView() {
   const [tab, setTab] = useState<"all" | "unread">("all");
   const all = [...(state?.notifications ?? [])].sort((a, b) => b.timecreated - a.timecreated);
   const list = tab === "unread" ? all.filter((n) => !n.read) : all;
-  const now = Math.floor(Date.now() / 1000);
+  const now = useNow();
   const groups = [
     { title: "Mới", items: list.filter((n) => now - n.timecreated < 86400 * 3) },
     { title: "Trước đó", items: list.filter((n) => now - n.timecreated >= 86400 * 3) },

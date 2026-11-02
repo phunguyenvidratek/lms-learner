@@ -72,8 +72,8 @@ export function getQuestions(cmid: number): QuizQuestion[] {
 export function findModule(cmid: number) {
   for (const [courseId, sections] of Object.entries(courseContents)) {
     for (const section of sections) {
-      const module = section.modules.find((m) => m.id === cmid);
-      if (module) return { courseId: Number(courseId), section, module };
+      const found = section.modules.find((m) => m.id === cmid);
+      if (found) return { courseId: Number(courseId), section, module: found };
     }
   }
   return undefined;

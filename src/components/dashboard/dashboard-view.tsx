@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Progress } from "@/components/ui/progress";
 import { learningPaths } from "@/lib/mock/data";
 import { useLearning } from "@/lib/store/learning-store";
+import { useNow } from "@/lib/use-now";
 import { cn, firstName, formatDate, formatDay, formatLongDate, formatTime, stripHtml } from "@/lib/utils";
 import type { Announcement, SiteInfo } from "@/types/moodle";
 
@@ -22,7 +23,7 @@ const DAY = 86400;
 function Announcements({ items, initialOpen }: { items: Announcement[]; initialOpen?: number }) {
   const [index, setIndex] = useState(0);
   const [openId, setOpenId] = useState<number | null>(initialOpen ?? null);
-  const now = Math.floor(Date.now() / 1000);
+  const now = useNow();
   const a = items[index];
   const opened = items.find((x) => x.id === openId);
   if (!a) return <EmptyState icon={Megaphone} title="Chưa có thông báo" description="Thông báo chung của Phòng Đào tạo sẽ hiển thị ở đây." />;
@@ -98,7 +99,7 @@ export function DashboardView({ user, announcements, initialAnnouncement }: { us
     return [...open].sort((a, b) => (b.lastaccess ?? 0) - (a.lastaccess ?? 0))[0];
   }, [courses]);
 
-  const now = Math.floor(Date.now() / 1000);
+  const now = useNow();
   const upcoming = quizzes
     .filter((q) => q.summary.quiz.timeclose > now && !q.summary.passed && q.course.status !== "completed")
     .sort((a, b) => a.summary.quiz.timeclose - b.summary.quiz.timeclose)

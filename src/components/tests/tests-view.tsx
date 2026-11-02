@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
 import type { QuizState } from "@/lib/learning";
 import { formatGrade, useLearning } from "@/lib/store/learning-store";
+import { useNow } from "@/lib/use-now";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { QUIZ_STATE, QuizStateBadge } from "./quiz-state-badge";
 
@@ -25,7 +26,7 @@ export function TestsView() {
   const { quizzes, courses } = useLearning();
   const [filter, setFilter] = useState<Filter>("all");
   const [courseId, setCourseId] = useState<number | "all">("all");
-  const now = Math.floor(Date.now() / 1000);
+  const now = useNow();
 
   const byCourse = quizzes.filter((q) => courseId === "all" || q.course.info.id === courseId);
   const count = (f: Filter) => byCourse.filter((q) => f === "all" || FILTERS.find((x) => x.key === f)!.match.includes(q.summary.state)).length;

@@ -35,7 +35,6 @@ export function formatDate(ts: number): string {
 }
 
 export function formatDateTime(ts: number): string {
-  const d = new Date(ts * 1000);
   return `${formatTime(ts)}, ${formatDate(ts)}`;
 }
 
