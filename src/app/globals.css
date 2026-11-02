@@ -190,3 +190,18 @@
   @apply mt-0;
 }
 }
+
+/* CERT-01: in chứng nhận khổ A4 ngang */
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
