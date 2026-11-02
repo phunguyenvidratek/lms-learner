@@ -8,6 +8,7 @@
 import { announcements, courseContents, quizzes } from "@/lib/mock/data";
 import { getQuestions, gradeAnswers, isTracked, type LearnerState } from "@/lib/learning";
 import { at, nowSeconds } from "@/lib/mock/time";
+import { formatDate } from "@/lib/utils";
 import type { Notification, StoredAttempt } from "@/types/moodle";
 
 /** Sinh câu trả lời có đúng `wrong` câu sai (để xem lại đáp án được) */
@@ -76,7 +77,7 @@ export function createSeedState(): LearnerState {
     component: string,
   ): Notification => ({ id, subject, smallmessage, contexturl, timecreated, read, component });
 
-  const deadline = new Date(at(3, 17) * 1000).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  const deadline = formatDate(at(3, 17)).slice(0, 5);
 
   return {
     v: 1,
