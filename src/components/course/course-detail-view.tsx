@@ -148,7 +148,7 @@ export function CourseDetailView({
   );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
       <div className="min-w-0 space-y-8">
         <section className="relative overflow-hidden rounded-2xl bg-brand-950 px-5 py-7 text-white sm:px-8 sm:py-9">
           <div className="absolute -top-20 -right-20 size-72 rounded-full bg-brand-700/30 blur-2xl" />

@@ -30,16 +30,13 @@ export function formatDuration(seconds: number): string {
 }
 
 export function formatDate(ts: number): string {
-  return new Date(ts * 1000).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const d = new Date(ts * 1000);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 export function formatDateTime(ts: number): string {
   const d = new Date(ts * 1000);
-  return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}, ${formatDate(ts)}`;
+  return `${formatTime(ts)}, ${formatDate(ts)}`;
 }
 
 /** "Hôm nay", "Ngày mai", "Thứ Hai, 09/11" */
@@ -51,12 +48,23 @@ export function formatDay(ts: number): string {
   if (diff === 0) return "Hôm nay";
   if (diff === 1) return "Ngày mai";
   if (diff === -1) return "Hôm qua";
-  const wd = d.toLocaleDateString("vi-VN", { weekday: "long" });
-  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
+  return `${weekday(d)}, ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const WEEKDAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+
+export function weekday(d: Date): string {
+  return WEEKDAYS[d.getDay()];
+}
+
+/** "Thứ hai, 02/11/2026" */
+export function formatLongDate(ts: number): string {
+  return `${weekday(new Date(ts * 1000))}, ${formatDate(ts)}`;
 }
 
 export function formatTime(ts: number): string {
-  return new Date(ts * 1000).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(ts * 1000);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 /** "5 phút trước", "3 ngày trước" */
