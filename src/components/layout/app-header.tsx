@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { Award, Bell, KeyRound, LogOut, Menu, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,26 +14,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { pageTitle } from "@/lib/nav";
+import { useLearning } from "@/lib/store/learning-store";
 import type { SiteInfo } from "@/types/moodle";
 import { SidebarFooter, SidebarNav } from "./app-sidebar";
 import { Logo } from "./logo";
-import { useState } from "react";
 
-function initials(name: string) {
+export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+  return ((parts.length > 1 ? parts[parts.length - 2][0] : "") + (parts[parts.length - 1]?.[0] ?? "")).toUpperCase();
 }
 
-/** SHELL-02 + SHELL-03 (menu mobile) + SHELL-06 (ô tìm kiếm, Could) */
-export function AppHeader({ user, unread }: { user: SiteInfo; unread: number }) {
+/** SHELL-02 (tiêu đề trang, chuông, tài khoản), SHELL-03 (menu mobile), NOTI-04 (badge chưa đọc) */
+export function AppHeader({ user }: { user: SiteInfo }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { unread, actions } = useLearning();
+
+  const signOut = () => {
+    actions.logout();
+    router.replace("/login");
+  };
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur lg:px-8">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur lg:px-8 print:hidden">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Mở menu">
+          <Button variant="ghost" size="icon" className="-ml-2 lg:hidden" aria-label="Mở menu">
             <Menu className="size-5" />
           </Button>
         </SheetTrigger>
@@ -41,21 +52,18 @@ export function AppHeader({ user, unread }: { user: SiteInfo; unread: number }) 
             <Logo />
           </div>
           <SidebarNav onNavigate={() => setOpen(false)} />
-          <SidebarFooter />
+          <SidebarFooter onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
 
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Tìm khóa học" className="rounded-full bg-muted pl-9" />
-      </div>
+      <p className="truncate text-base font-semibold text-foreground lg:text-lg">{pageTitle(pathname)}</p>
 
-      <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild className="relative" aria-label="Thông báo">
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <Button variant="ghost" size="icon" asChild className="relative" aria-label={`Thông báo, ${unread} chưa đọc`}>
           <Link href="/notifications">
             <Bell className="size-5" />
             {unread > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+              <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white ring-2 ring-card">
                 {unread > 99 ? "99+" : unread}
               </span>
             )}
@@ -63,27 +71,39 @@ export function AppHeader({ user, unread }: { user: SiteInfo; unread: number }) 
         </Button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-3 rounded-full py-1 pr-2 pl-1 outline-none hover:bg-muted">
+          <DropdownMenuTrigger className="flex items-center gap-3 rounded-full py-1 pr-1 pl-1 outline-none hover:bg-muted sm:pr-3">
             <Avatar>
               <AvatarFallback>{initials(user.fullname)}</AvatarFallback>
             </Avatar>
-            <span className="hidden text-sm font-semibold sm:block">{user.fullname}</span>
+            <span className="hidden text-left sm:block">
+              <span className="block text-sm leading-tight font-semibold">{user.fullname}</span>
+              <span className="block text-xs leading-tight text-muted-foreground">{user.department}</span>
+            </span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-60">
             <DropdownMenuLabel>
               <div className="font-semibold">{user.fullname}</div>
-              <div className="text-xs font-normal text-muted-foreground">{user.username}</div>
+              <div className="text-xs font-normal text-muted-foreground">{user.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profile">Hồ sơ</Link>
+              <Link href="/profile">
+                <UserRound /> Hồ sơ cá nhân
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/certificates">Chứng nhận</Link>
+              <Link href="/certificates">
+                <Award /> Chứng nhận
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/profile#doi-mat-khau">
+                <KeyRound /> Đổi mật khẩu
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild variant="destructive">
-              <Link href="/login">Đăng xuất</Link>
+            <DropdownMenuItem variant="destructive" onSelect={signOut}>
+              <LogOut /> Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -36,3 +36,54 @@ export function formatDate(ts: number): string {
     year: "numeric",
   });
 }
+
+export function formatDateTime(ts: number): string {
+  const d = new Date(ts * 1000);
+  return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}, ${formatDate(ts)}`;
+}
+
+/** "Hôm nay", "Ngày mai", "Thứ Hai, 09/11" */
+export function formatDay(ts: number): string {
+  const d = new Date(ts * 1000);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - today.getTime()) / 86400000);
+  if (diff === 0) return "Hôm nay";
+  if (diff === 1) return "Ngày mai";
+  if (diff === -1) return "Hôm qua";
+  const wd = d.toLocaleDateString("vi-VN", { weekday: "long" });
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
+}
+
+export function formatTime(ts: number): string {
+  return new Date(ts * 1000).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** "5 phút trước", "3 ngày trước" */
+export function formatRelative(ts: number): string {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60) return "Vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} ngày trước`;
+  return formatDate(ts);
+}
+
+/** 125 -> "2:05" */
+export function formatClock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+}
+
+export function firstName(fullname: string): string {
+  const parts = fullname.trim().split(/\s+/);
+  return parts.slice(-2).join(" ");
+}

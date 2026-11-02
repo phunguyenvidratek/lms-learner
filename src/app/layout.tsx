@@ -6,18 +6,21 @@ import "@fontsource/be-vietnam-pro/600.css";
 import "@fontsource/be-vietnam-pro/700.css";
 import "@fontsource/be-vietnam-pro/800.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LearningProvider } from "@/lib/store/learning-store";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "VIGO LMS", template: "%s | VIGO LMS" },
-  description: "Cổng học tập nội bộ VIGO (mockup learner portal)",
+  title: { default: "VIGO Learning", template: "%s | VIGO Learning" },
+  description: "Cổng học tập nội bộ VIGO",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
       <body className="min-h-dvh font-sans">
-        <TooltipProvider>{children}</TooltipProvider>
+        <LearningProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </LearningProvider>
       </body>
     </html>
   );

@@ -8,6 +8,12 @@
 /** core_webservice_get_site_info */
 export interface SiteInfo {
   sitename: string;
+  /** Không có trong site info: lấy từ core_user_get_users_by_field (email, department, institution) */
+  email: string;
+  department: string;
+  institution: string;
+  idnumber: string;
+  firstaccess: number;
   userid: number;
   username: string;
   firstname: string;
@@ -80,6 +86,11 @@ export interface CourseModule {
   contents?: ModuleContentFile[];
   /** Không có trong Moodle: thời lượng video, lấy từ custom field của module video */
   customdata_duration?: number;
+  /** drivevideo: nguồn video (link Google Drive /preview hoặc file mp4), xem src/lib/video.ts */
+  videourl?: string;
+  videoposter?: string;
+  /** mod_url_get_urls_by_courses > externalurl */
+  externalurl?: string;
 }
 
 export interface ModuleContentFile {
@@ -88,6 +99,7 @@ export interface ModuleContentFile {
   fileurl: string;
   filesize: number;
   mimetype?: string;
+  timemodified?: number;
 }
 
 /** core_course_get_contents > sections[] */
@@ -99,6 +111,46 @@ export interface CourseSection {
   uservisible: boolean;
   availabilityinfo?: string | null;
   modules: CourseModule[];
+}
+
+/**
+ * core_course_get_courses_by_field > courses[] (rút gọn) + course custom fields.
+ * Phần tiến độ cá nhân (progress, completed, isfavourite, lastaccess) tính ở src/lib/learning.ts.
+ */
+export interface CourseInfo {
+  id: number;
+  fullname: string;
+  shortname: string;
+  summary: string; // HTML ngắn
+  description: string; // HTML dài (custom field)
+  objectives: string[];
+  requirements: string[];
+  courseimage: string;
+  coursecategory: string;
+  teacher: string;
+  startdate: number;
+  enddate: number;
+  timemodified: number;
+}
+
+/** Lộ trình học (LP-01). Moodle core không có, phương án chờ BA chốt. */
+export interface LearningPath {
+  id: number;
+  name: string;
+  description: string;
+  steps: { stage: string; courseid: number }[];
+}
+
+/** mod_forum_get_forum_discussions + mod_forum_get_discussion_posts (gộp, rút gọn) */
+export interface ForumDiscussion {
+  id: number;
+  courseid: number;
+  forumtype: "news" | "qanda";
+  name: string;
+  message: string; // HTML
+  created: number;
+  userfullname: string;
+  replies: { id: number; message: string; created: number; userfullname: string }[];
 }
 
 /** core_completion_get_course_completion_status */
@@ -151,6 +203,13 @@ export interface QuizQuestion {
   feedback?: string;
 }
 
+/** Lượt làm bài lưu ở store phía client (mô phỏng mod_quiz_get_attempt_review) */
+export interface StoredAttempt extends QuizAttempt {
+  answers: Record<number, string[]>;
+  /** Điểm quy về thang grade của quiz (ví dụ 7.5 / 10) */
+  grade: number;
+}
+
 /** message_popup_get_popup_notifications > notifications[] */
 export interface Notification {
   id: number;
@@ -168,6 +227,8 @@ export interface CalendarEvent {
   name: string;
   description: string;
   eventtype: "site" | "course" | "user" | "close" | "open";
+  /** cmid của quiz khi eventtype = close */
+  instance?: number;
   timestart: number;
   timeduration: number;
   courseid?: number;

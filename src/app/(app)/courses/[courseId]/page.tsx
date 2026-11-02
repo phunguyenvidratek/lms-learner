@@ -1,36 +1,22 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/layout/page-header";
-import { ScreenPlaceholder } from "@/components/screen-placeholder";
-import { Button } from "@/components/ui/button";
-import { core_course_get_contents, core_course_get_enrolled_courses_by_timeline_classification, nextModuleToLearn } from "@/lib/data";
+import { CourseDetailView, type CourseTab } from "@/components/course/course-detail-view";
+import { core_course_get_courses_by_field, mod_forum_get_forum_discussions } from "@/lib/data";
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+type Props = { params: Promise<{ courseId: string }>; searchParams: Promise<{ tab?: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const course = await core_course_get_courses_by_field(Number((await params).courseId));
+  return { title: course?.fullname ?? "Không tìm thấy khóa học" };
+}
+
+/** CDET: chi tiết khóa học */
+export default async function CourseDetailPage({ params, searchParams }: Props) {
   const { courseId } = await params;
-  const id = Number(courseId);
-  const courses = await core_course_get_enrolled_courses_by_timeline_classification("all");
-  const course = courses.find((c) => c.id === id);
+  const { tab } = await searchParams;
+  const course = await core_course_get_courses_by_field(Number(courseId));
   if (!course) notFound();
-  const next = nextModuleToLearn(await core_course_get_contents(id));
-
-  return (
-    <>
-      <PageHeader
-        eyebrow="Khóa học"
-        title={course.fullname}
-        actions={
-          next && (
-            <Button asChild>
-              <Link href={next.modname === "quiz" ? `/quiz/${next.id}` : `/learn/${id}/${next.id}`}>Học tiếp</Link>
-            </Button>
-          )
-        }
-      />
-      <ScreenPlaceholder
-        screen="CDET"
-        title="Chi tiết khóa học"
-        references={["11-course-landing", "12-course-landing-curriculum", "13-course-landing-description"]}
-      />
-    </>
-  );
+  const discussions = await mod_forum_get_forum_discussions(course.id);
+  const initialTab: CourseTab = tab === "hoi-dap" || tab === "thong-bao" ? tab : "noi-dung";
+  return <CourseDetailView key={initialTab} courseId={course.id} discussions={discussions} initialTab={initialTab} />;
 }
