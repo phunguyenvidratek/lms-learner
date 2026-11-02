@@ -17,7 +17,9 @@ import type {
 } from "@/types/moodle";
 import { at } from "./time";
 
-export const TRAINING_TEAM = "Phòng Đào tạo VIGO";
+import { TRAINING_TEAM } from "@/lib/config";
+
+export { TRAINING_TEAM };
 
 export const siteInfo: SiteInfo = {
   sitename: "VIGO Learning",

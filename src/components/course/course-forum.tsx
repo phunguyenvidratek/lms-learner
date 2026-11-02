@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { MoodleHtml } from "@/components/common/moodle-html";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { initials } from "@/components/layout/app-header";
-import { TRAINING_TEAM } from "@/lib/mock/data";
+import { TRAINING_TEAM } from "@/lib/config";
 import { cn, formatRelative } from "@/lib/utils";
 import type { ForumDiscussion } from "@/types/moodle";
 

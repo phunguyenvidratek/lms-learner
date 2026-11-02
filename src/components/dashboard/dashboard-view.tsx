@@ -11,11 +11,10 @@ import { courseCta } from "@/components/course/course-cta";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { learningPaths } from "@/lib/mock/data";
 import { useLearning } from "@/lib/store/learning-store";
 import { useNow } from "@/lib/use-now";
 import { cn, firstName, formatDate, formatDay, formatLongDate, formatTime, stripHtml } from "@/lib/utils";
-import type { Announcement, SiteInfo } from "@/types/moodle";
+import type { Announcement, LearningPath, SiteInfo } from "@/types/moodle";
 
 const DAY = 86400;
 
@@ -84,7 +83,17 @@ function Announcements({ items, initialOpen }: { items: Announcement[]; initialO
 }
 
 /** DASH-01..05 */
-export function DashboardView({ user, announcements, initialAnnouncement }: { user: SiteInfo; announcements: Announcement[]; initialAnnouncement?: number }) {
+export function DashboardView({
+  user,
+  announcements,
+  path,
+  initialAnnouncement,
+}: {
+  user: SiteInfo;
+  announcements: Announcement[];
+  path: LearningPath;
+  initialAnnouncement?: number;
+}) {
   const { courses, quizzes } = useLearning();
   const counts = {
     inprogress: courses.filter((c) => c.status === "inprogress").length,
@@ -105,7 +114,6 @@ export function DashboardView({ user, announcements, initialAnnouncement }: { us
     .sort((a, b) => a.summary.quiz.timeclose - b.summary.quiz.timeclose)
     .slice(0, 5);
 
-  const path = learningPaths[0];
   const pathCourses = path.steps.map((s) => courses.find((c) => c.info.id === s.courseid)!);
   const pathDone = pathCourses.filter((c) => c.status === "completed").length;
   const pathPercent = Math.round(pathCourses.reduce((s, c) => s + c.progress, 0) / pathCourses.length);
