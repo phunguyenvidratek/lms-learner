@@ -20,12 +20,14 @@ import {
   defaultCompletion,
   MOD_TYPE_LABEL,
   parseAvailabilityTree,
+  quizSettingsOf,
 } from "@/lib/admin";
 import { newId, useAdmin } from "@/lib/store/admin-store";
 import { stripHtml } from "@/lib/utils";
 import { resolveVideoSource } from "@/lib/video";
 import type { ModName } from "@/types/moodle";
-import type { AdminModule } from "@/types/moodle-admin";
+import type { AdminModule, QuizSettings } from "@/types/moodle-admin";
+import { QuizCoreSections, QuizMoreSections } from "../quiz/quiz-fields";
 import { CheckRow, DateTimeField, DisabledGroupsNote, ExpandAll, Field, FormSection, NativeSelect, StickySaveBar, Textarea } from "../common/form";
 import { AdminPageHeader } from "../layout/page-header";
 import { AvailabilityEditor, type EditableCondition } from "./availability-editor";
@@ -104,8 +106,8 @@ function initialValues(m: AdminModule | undefined, modname: ModName): Values {
   };
 }
 
-function initialCompletion(m: AdminModule | undefined, modname: ModName): CompletionValue {
-  const d = m ?? defaultCompletion(modname);
+function initialCompletion(m: AdminModule | undefined, modname: ModName, override?: Partial<AdminModule>): CompletionValue {
+  const d = m ?? override ?? defaultCompletion(modname);
   return {
     completion: d.completion ?? 0,
     completionview: !!d.completionview,
@@ -130,7 +132,12 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
   const section = sections.find((s) => s.section === sectionNo);
 
   const [v, setV] = useState<Values>(() => initialValues(existing?.m, modname));
-  const [comp, setComp] = useState<CompletionValue>(() => initialCompletion(existing?.m, modname));
+  const [comp, setComp] = useState<CompletionValue>(() =>
+    initialCompletion(existing?.m, modname, ds.admin?.defaultCompletion[`${courseId}:${modname}`]),
+  );
+  const isQuiz = modname === "quiz";
+  const [qs, setQs] = useState<QuizSettings>(() => quizSettingsOf(ds, existing?.m.id ?? -1));
+  const setQ = (patch: Partial<QuizSettings>) => setQs((cur) => ({ ...cur, ...patch }));
   const tree = parseAvailabilityTree(existing?.m.availability);
   const [conds, setConds] = useState<EditableCondition[]>(tree.c);
   const [op, setOp] = useState<"&" | "|">(tree.op);
@@ -157,6 +164,8 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
     if (modname === "url" && !/^https?:\/\//.test(v.externalurl)) e.externalurl = "Nhập địa chỉ bắt đầu bằng https://";
     if (isLabel && !v.content.trim()) e.content = "Nhập nội dung văn bản.";
     if (modname === "resource" && !v.filename) e.filename = "Chọn tệp tải lên.";
+    if (isQuiz && (qs.gradepass < 0 || qs.gradepass > 10)) e.gradepass = "Điểm đạt phải từ 0 đến 10.";
+    if (isQuiz && qs.timeopen && qs.timeclose && qs.timeclose <= qs.timeopen) e.timeclose = "Thời điểm đóng phải sau thời điểm mở.";
     setErrors(e);
     if (Object.keys(e).length) {
       document.getElementById(`f-${Object.keys(e)[0]}`)?.focus();
@@ -197,6 +206,7 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
       cmid = newId();
       actions.addModule(courseId, sectionNo, createModule(cmid, modname, name, patch));
     }
+    if (isQuiz) actions.updateQuizSettings(cmid, { ...qs, name, visible: v.visible, idnumber: v.idnumber });
     router.push(andView && modname === "quiz" ? `/admin/quiz/${cmid}/edit` : `/admin/courses/${courseId}/edit#cm-${cmid}`);
   };
 
@@ -230,6 +240,9 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
           </FormSection>
         )}
 
+        {isQuiz && <QuizCoreSections v={qs} set={setQ} grade={10} errors={errors} expanded={expanded} />}
+
+        {!isQuiz && (
         <FormSection title="Nội dung" defaultOpen key={`s2${expanded}`} id="noi-dung">
           {modname === "drivevideo" && (
             <>
@@ -328,6 +341,7 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
           )}
           {children}
         </FormSection>
+        )}
 
         {modname === "assign" && (
           <FormSection title="Thời hạn và điểm" defaultOpen key={`s3${expanded}`}>
@@ -429,7 +443,11 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
           )}
         </FormSection>
 
-        <DisabledGroupsNote groups={["Thẻ (Tags)", "Năng lực (Competencies)", "Công cụ AI"]} />
+        {isQuiz && <QuizMoreSections v={qs} set={setQ} expanded={expanded} />}
+
+        <DisabledGroupsNote
+          groups={isQuiz ? ["Safe Exam Browser", "Thẻ (Tags)", "Năng lực (Competencies)", "Công cụ AI"] : ["Thẻ (Tags)", "Năng lực (Competencies)", "Công cụ AI"]}
+        />
 
         <StickySaveBar>
           <Button variant="ghost" asChild>

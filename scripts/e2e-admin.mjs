@@ -61,6 +61,40 @@ step("Chọn 2 file tạo 2 bài Tài liệu");
 
 await page.screenshot({ path: join(out, "admin-e2e-editor.png") });
 
+// ---------- 3. Bài kiểm tra ----------
+await open("/admin/courses/17/modedit?update=1712");
+await page.getByRole("spinbutton", { name: "Điểm đạt" }).fill("7");
+await page.getByLabel("Số lần làm").selectOption("2");
+await page.getByRole("button", { name: "Lưu và xem" }).click();
+await page.waitForURL(/\/admin\/quiz\/1712\/edit/);
+await page.getByText("Bài kiểm tra chưa có câu hỏi").waitFor();
+assert.ok(await page.getByText(/2 lượt làm · Đạt từ 7\/10/).isVisible(), "Cài đặt quiz đã lưu");
+step("Sửa cài đặt bài kiểm tra (điểm đạt, số lần làm)");
+
+await page.getByRole("link", { name: "Thêm câu hỏi từ Excel" }).first().click();
+await page.getByRole("button", { name: "Tiếp tục" }).click();
+await page.getByLabel("Chọn file câu hỏi").setInputFiles({ name: "cau-hoi.xlsx", mimeType: "application/octet-stream", buffer: Buffer.from("x") });
+await page.getByText("6 câu hợp lệ").waitFor();
+assert.ok(await page.getByText("2 dòng lỗi").isVisible());
+assert.ok(await page.getByText("Thiếu nội dung câu hỏi.").isVisible(), "Lỗi theo dòng và cột");
+await page.getByRole("button", { name: "Nhập 6 câu" }).click();
+await page.waitForURL(/\/admin\/quiz\/1712\/edit/);
+await page.getByText("6 câu ·").waitFor();
+step("Nhập Excel 3 bước: 6 câu hợp lệ, 2 dòng lỗi được báo theo cột, nhập 6 câu");
+
+await open("/admin");
+assert.equal(await page.getByText("Bài kiểm tra chưa có câu hỏi: Kiểm tra Phần 1").count(), 0, "Cảnh báo quiz chưa có câu hỏi đã mất");
+step("Tổng quan bỏ cảnh báo quiz chưa có câu hỏi");
+
+// ---------- 4. Hoàn thành khóa ----------
+await open("/admin/courses/12/completion");
+const sentence = page.locator('[aria-live="polite"]');
+assert.match(await sentence.innerText(), /hoàn thành 13 bài học và đạt 3 bài kiểm tra/);
+await page.getByText("Kiểm tra Phần 3", { exact: true }).click();
+assert.match(await sentence.innerText(), /hoàn thành 13 bài học và đạt 2 bài kiểm tra/, "Câu tóm tắt đổi khi bỏ tick");
+await page.getByRole("button", { name: "Hủy thay đổi" }).click();
+step("Câu tóm tắt quy tắc hoàn thành đổi ngay khi tick");
+
 if (errors.length) {
   console.error("Lỗi trên trang:", errors);
   process.exitCode = 1;

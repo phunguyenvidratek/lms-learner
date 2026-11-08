@@ -2,7 +2,7 @@
  * Type dữ liệu quản trị, mô phỏng response Moodle 5.1 (rút gọn). Tên field giữ đúng như Moodle
  * (bảng DB hoặc web service ghi trong comment) để khi nối thật chỉ đổi nguồn ở src/lib/admin-data.ts.
  */
-import type { Announcement, CourseInfo, CourseModule, CourseSection } from "./moodle";
+import type { Announcement, CourseInfo, CourseModule, CourseSection, ModName, QuizQuestion } from "./moodle";
 
 /** core_user_get_users > users[] (user + customfields) */
 export interface AdminUser {
@@ -226,7 +226,13 @@ export interface AdminState {
   recycle: Record<number, number>;
   /** enrol.status đã đổi: enrolid -> 0 bật, 1 tắt */
   enrolStatus: Record<number, 0 | 1>;
+  /** Câu hỏi thêm vào quiz (nhập Excel): cmid -> câu hỏi */
+  quizQuestions: Record<number, QuizQuestion[]>;
+  /** course/defaultcompletion.php: mặc định hoàn thành theo loại bài của từng khóa, khóa "courseid:modname" */
+  defaultCompletion: Record<string, Pick<AdminModule, "completion" | "completionview" | "completionpercent" | "completionusegrade" | "completionpassgrade">>;
 }
+
+export type DefaultCompletionKey = `${number}:${ModName}`;
 
 /**
  * Module theo góc nhìn người soạn: CourseModule + field cấu hình của course_modules.

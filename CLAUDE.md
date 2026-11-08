@@ -168,6 +168,10 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 - Thay đổi admin tạo ra (thêm bài, sửa cài đặt, ghi danh, thêm người): store `src/lib/store/admin-store.tsx`
   (`useAdmin()`, localStorage `vigo-lms:admin:v1`, `?reset=1` xóa cùng learner). Hàm của `admin.ts` nhận `ds` từ
   `useAdmin()`. **Không đồng bộ sang learner** (learner đọc nội dung khóa ở server). Đã chốt với PO.
+- Điều kiện hoàn thành khóa: `buildAllCourses(state, criteria?)` của `learning.ts` nhận điều kiện tùy chọn. Learner không
+  truyền nên dùng mặc định (mọi bài có theo dõi hoàn thành, quiz phải đạt); admin truyền điều kiện đã sửa ở COMP.
+- Nhập câu hỏi Excel (QUIZ-04): file .csv đọc thật, file .xlsx dùng 8 dòng mẫu có 2 dòng lỗi (`quiz-import.ts`).
+- Kiểm tra luồng admin: `node scripts/e2e-admin.mjs http://localhost:3000`.
 - Không ghi mật khẩu thật vào mock, trường mật khẩu dùng placeholder.
 
 ### Map màn hình admin
@@ -181,12 +185,12 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Chưa dựng |
 | CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Đã dựng |
 | CED-07 | Nút Xem như học viên | /course/switchrole.php?id=&switchrole=5 (mockup mở learner /courses/[id]) | Đã dựng |
-| ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Đã dựng ACT (quiz ở QUIZ-01) |
-| QUIZ-02, 03 | /admin/quiz/[cmId]/edit | /mod/quiz/edit.php?cmid= | Chưa dựng |
-| QUIZ-04 | /admin/quiz/[cmId]/import | /local/quizexcel/import.php?cmid= | Chưa dựng |
-| QUIZ-05 | /admin/quiz/[cmId]/results | /mod/quiz/report.php?id=&mode=overview | Chưa dựng |
-| QUIZ-06 | /admin/courses/[id]/question-banks, /admin/question-banks | /question/banks.php?courseid= | Chưa dựng |
-| COMP-01..03 | /admin/courses/[id]/completion (+ /default, /bulk) | /course/completion.php?id=, /course/defaultcompletion.php?id=, /course/bulkcompletion.php?id= | Chưa dựng |
+| ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Đã dựng |
+| QUIZ-02, 03 | /admin/quiz/[cmId]/edit | /mod/quiz/edit.php?cmid= | Đã dựng |
+| QUIZ-04 | /admin/quiz/[cmId]/import | /local/quizexcel/import.php?cmid= | Đã dựng |
+| QUIZ-05 | /admin/quiz/[cmId]/results | /mod/quiz/report.php?id=&mode=overview | Đã dựng |
+| QUIZ-06 | /admin/courses/[id]/question-banks, /admin/question-banks | /question/banks.php?courseid= | Đã dựng |
+| COMP-01..03 | /admin/courses/[id]/completion (+ /default, /bulk) | /course/completion.php?id=, /course/defaultcompletion.php?id=, /course/bulkcompletion.php?id= | Đã dựng |
 | ENR-01..03 | /admin/courses/[id]/participants | /user/index.php?id= | Chưa dựng |
 | ENR-04 | /admin/courses/[id]/enrolments | /enrol/instances.php?id= | Chưa dựng |
 | RPT-04 | /admin/courses/[id]/grades | /grade/report/grader/index.php?id= | Chưa dựng |
@@ -230,3 +234,9 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
     để Tài liệu là học viên tự đánh dấu (LEARN-09). Chốt một quy tắc.
 12. Xem như học viên (CED-07): mockup mở learner portal, khóa đang ẩn thì nút bị tắt vì learner không có khóa ẩn.
     Moodle thật dùng Switch role, xem được cả khóa ẩn.
+13. Mặc định xem lại đáp án (QUIZ-01): mockup để như learner hiện tại (xem đáp án đúng ngay sau khi nộp). BA đề xuất
+    "xem đáp án sau khi đóng" (Điểm chưa chốt số 5), nối với câu 4 phía learner.
+14. Sửa điểm đạt, số lượt của quiz trong mockup chỉ đổi ở admin (thẻ, câu tóm tắt). Trạng thái đạt của học viên vẫn tính
+    theo 8/10 của dữ liệu mẫu vì learner không đọc store admin.
+15. Nhập Excel (QUIZ-04): dòng lỗi được bỏ qua nếu tick "Bỏ qua dòng lỗi". VIGO muốn cho nhập một phần hay bắt sửa
+    hết lỗi rồi mới nhập?

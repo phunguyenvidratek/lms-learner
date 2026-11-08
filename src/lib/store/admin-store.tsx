@@ -12,7 +12,7 @@
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import { baseDataset, type AdminDataset } from "@/lib/admin";
 import { useLearning } from "@/lib/store/learning-store";
-import type { Announcement } from "@/types/moodle";
+import type { Announcement, ModName, QuizQuestion } from "@/types/moodle";
 import type {
   AddedModule,
   AdminCourse,
@@ -53,6 +53,8 @@ function emptyState(): AdminState {
     completion: {},
     recycle: {},
     enrolStatus: {},
+    quizQuestions: {},
+    defaultCompletion: {},
   };
 }
 
@@ -157,6 +159,14 @@ const actions = {
   /** course/modedit.php?update= (quiz) */
   updateQuizSettings(cmid: number, patch: Partial<QuizSettings>) {
     update((s) => ({ ...s, quizSettings: { ...s.quizSettings, [cmid]: { ...s.quizSettings[cmid], ...patch } } }));
+  },
+  /** local/quizexcel/import.php: thêm câu hỏi đã kiểm tra vào quiz */
+  importQuestions(cmid: number, questions: QuizQuestion[]) {
+    update((s) => ({ ...s, quizQuestions: { ...s.quizQuestions, [cmid]: [...(s.quizQuestions[cmid] ?? []), ...questions] } }));
+  },
+  /** course/defaultcompletion.php */
+  setDefaultCompletion(courseid: number, modname: ModName, value: AdminState["defaultCompletion"][string]) {
+    update((s) => ({ ...s, defaultCompletion: { ...s.defaultCompletion, [`${courseid}:${modname}`]: value } }));
   },
   /** course/completion.php */
   setCompletion(courseid: number, criteria: CompletionCriteria) {

@@ -188,7 +188,45 @@ export function prerequisiteOf(courseId: number): CourseInfo | undefined {
   return undefined;
 }
 
-function buildCourse(state: LearnerState, info: CourseInfo, completedSet: Set<number>): CourseView {
+/**
+ * Điều kiện hoàn thành khóa (course/completion.php, Admin COMP). Learner không truyền thì dùng mặc định:
+ * hoàn thành mọi bài có theo dõi hoàn thành (bài kiểm tra phải đạt). Admin truyền điều kiện đã sửa để
+ * báo cáo tính theo cùng một hàm này.
+ */
+export interface CourseCriteria {
+  /** 1 = mọi điều kiện, 2 = bất kỳ */
+  aggregation: 1 | 2;
+  activities: number[];
+  activityaggregation: 1 | 2;
+  /** Điểm khóa tối thiểu (thang 10), null = không dùng */
+  grade: number | null;
+}
+
+/** Mặc định: mọi bài có theo dõi hoàn thành của khóa */
+export function defaultCriteria(courseId: number): CourseCriteria {
+  const activities = (courseContents[courseId] ?? []).flatMap((s) => s.modules).filter(isTracked).map((m) => m.id);
+  return { aggregation: 1, activities, activityaggregation: 1, grade: null };
+}
+
+function meetsCriteria(state: LearnerState, all: CourseModule[], crit: CourseCriteria) {
+  const checks: boolean[] = [];
+  if (crit.activities.length) {
+    const mods = all.filter((m) => crit.activities.includes(m.id));
+    checks.push(crit.activityaggregation === 1 ? mods.every((m) => isDone(state, m)) : mods.some((m) => isDone(state, m)));
+  }
+  if (crit.grade != null) {
+    const best = all
+      .filter((m) => m.modname === "quiz")
+      .map((m) => summarizeQuiz(state, m.id)?.best)
+      .filter((b): b is number => b != null);
+    const avg = best.length ? best.reduce((a, b) => a + b, 0) / best.length : 0;
+    checks.push(best.length > 0 && avg >= crit.grade);
+  }
+  if (!checks.length) return false;
+  return crit.aggregation === 1 ? checks.every(Boolean) : checks.some(Boolean);
+}
+
+function buildCourse(state: LearnerState, info: CourseInfo, completedSet: Set<number>, criteria?: CourseCriteria): CourseView {
   const raw = courseContents[info.id] ?? [];
   const prerequisite = prerequisiteOf(info.id);
   const courseLocked = !!prerequisite && !completedSet.has(prerequisite.id);
@@ -232,7 +270,7 @@ function buildCourse(state: LearnerState, info: CourseInfo, completedSet: Set<nu
   const done = tracked.filter((m) => isDone(state, m)).length;
   const total = tracked.length;
   const progress = total ? Math.round((done / total) * 100) : 0;
-  const completed = total > 0 && done === total;
+  const completed = criteria ? meetsCriteria(state, all, criteria) : total > 0 && done === total;
   const playable = sections
     .filter((s) => s.uservisible)
     .flatMap((s) => s.modules)
@@ -269,14 +307,14 @@ function buildCourse(state: LearnerState, info: CourseInfo, completedSet: Set<nu
 }
 
 /** Dựng toàn bộ khóa theo thứ tự lộ trình để biết khóa trước đã hoàn thành chưa. */
-export function buildAllCourses(state: LearnerState): CourseView[] {
+export function buildAllCourses(state: LearnerState, criteria?: Record<number, CourseCriteria>): CourseView[] {
   const completedSet = new Set<number>();
   const order = [...learningPaths.flatMap((p) => p.steps.map((s) => s.courseid))];
   for (const c of courses) if (!order.includes(c.id)) order.push(c.id);
   const views = new Map<number, CourseView>();
   for (const id of order) {
     const info = getCourseInfo(id)!;
-    const view = buildCourse(state, info, completedSet);
+    const view = buildCourse(state, info, completedSet, criteria?.[id]);
     if (view.status === "completed") completedSet.add(id);
     views.set(id, view);
   }

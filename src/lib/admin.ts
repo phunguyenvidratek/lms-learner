@@ -6,9 +6,11 @@
  */
 import {
   buildAllCourses,
+  defaultCriteria,
   getQuestions,
   questionScore,
   summarizeQuiz,
+  type CourseCriteria,
   type CourseView,
   type LearnerState,
   type QuizSummary,
@@ -20,13 +22,17 @@ import { assignSubmissions } from "@/lib/mock/admin/submissions";
 import { cohortMembers, cohorts, roles, ROLE_STUDENT, users } from "@/lib/mock/admin/users";
 import { courseContents, quizzes, siteInfo } from "@/lib/mock/data";
 import { DAY } from "@/lib/mock/time";
-import type { CourseSection, ModName, Quiz } from "@/types/moodle";
+import type { CourseSection, ModName, Quiz, QuizQuestion } from "@/types/moodle";
 import type {
   AdminAlert,
   AdminModule,
   AdminSection,
   AdminState,
   AdminCourse,
+  CompletionCriteria,
+  QuizSettings,
+  ReviewItem,
+  ReviewWhen,
   AdminUser,
   Cohort,
   CohortMember,
@@ -105,7 +111,7 @@ export function userCohorts(ds: AdminDataset, userid: number) {
 // ---------- Tiến độ theo học viên ----------
 
 const profileCache = new Map<number, LearnerState>();
-const viewCache = new WeakMap<LearnerState, CourseView[]>();
+const viewCache = new WeakMap<LearnerState, { crit: unknown; views: CourseView[] }>();
 
 /** LearnerState của một học viên: state thật nếu là người học learner, còn lại dựng từ hồ sơ mẫu */
 export function learnerState(ds: AdminDataset, userid: number): LearnerState {
@@ -121,12 +127,60 @@ export function learnerState(ds: AdminDataset, userid: number): LearnerState {
 /** Khóa học theo góc nhìn của một học viên (cùng hàm learner dùng) */
 export function learnerCourseViews(ds: AdminDataset, userid: number): CourseView[] {
   const state = learnerState(ds, userid);
-  let views = viewCache.get(state);
-  if (!views) {
-    views = buildAllCourses(state);
-    viewCache.set(state, views);
-  }
+  const crit = ds.admin?.completion;
+  const cached = viewCache.get(state);
+  if (cached && cached.crit === crit) return cached.views;
+  const views = buildAllCourses(state, crit && Object.keys(crit).length ? criteriaForLearning(crit) : undefined);
+  viewCache.set(state, { crit, views });
   return views;
+}
+
+function criteriaForLearning(all: Record<number, CompletionCriteria>): Record<number, CourseCriteria> {
+  return Object.fromEntries(
+    Object.entries(all).map(([id, c]) => [id, { aggregation: c.aggregation, activities: c.activities, activityaggregation: c.activityaggregation, grade: c.grade }]),
+  );
+}
+
+// ---------- Điều kiện hoàn thành khóa (Admin COMP) ----------
+
+/** Điều kiện hiện hành: admin đã sửa, nếu chưa thì mặc định của learning.ts (khớp learner) */
+export function courseCriteria(ds: AdminDataset, courseId: number): CompletionCriteria {
+  const saved = ds.admin?.completion[courseId];
+  if (saved) return saved;
+  const d = defaultCriteria(courseId);
+  return { ...d, date: null, enrolperiod: null, unenrol: false, selfcompletion: false, othercourses: [], roles: [] };
+}
+
+/** COMP-01: câu tóm tắt "Học viên hoàn thành khóa khi: ..." */
+export function completionSentence(ds: AdminDataset, courseId: number, c: CompletionCriteria): string {
+  const mods = courseSections(ds, courseId).flatMap((s) => s.modules);
+  const parts: string[] = [];
+  if (c.activities.length) {
+    const picked = mods.filter((m) => c.activities.includes(m.id));
+    const quizzes = picked.filter((m) => m.modname === "quiz");
+    const lessons = picked.length - quizzes.length;
+    const what = [lessons ? `${lessons} bài học` : "", quizzes.length ? `đạt ${quizzes.length} bài kiểm tra` : ""].filter(Boolean).join(" và ");
+    parts.push(c.activityaggregation === 1 ? `hoàn thành ${what}` : `hoàn thành ít nhất một trong ${picked.length} bài đã chọn`);
+  }
+  if (c.grade != null) parts.push(`điểm khóa từ ${formatNum(c.grade)}/10`);
+  if (c.date) parts.push(`tới ngày ${new Date(c.date * 1000).toLocaleDateString("vi-VN")}`);
+  if (c.enrolperiod) parts.push(`đã ghi danh ${c.enrolperiod} ngày`);
+  if (c.unenrol) parts.push("bị hủy ghi danh");
+  if (c.selfcompletion) parts.push("tự đánh dấu hoàn thành khóa");
+  if (c.othercourses.length) {
+    const names = c.othercourses.map((id) => getAdminCourse(ds, id)?.fullname).filter(Boolean);
+    parts.push(`hoàn thành khóa ${names.join(", ")}`);
+  }
+  if (c.roles.length) parts.push(`được ${c.roles.map((r) => roleName(ds, r)).join(", ")} đánh dấu hoàn thành`);
+  if (!parts.length) return "Chưa đặt điều kiện. Khóa sẽ không bao giờ được tính là hoàn thành.";
+  return `Học viên hoàn thành khóa khi ${parts.join(c.aggregation === 1 ? ", và " : ", hoặc ")}.`;
+}
+
+// ---------- Câu hỏi của bài kiểm tra ----------
+
+/** Câu hỏi mock + câu đã nhập Excel trong mockup */
+export function quizQuestionsOf(ds: AdminDataset, cmid: number): QuizQuestion[] {
+  return [...getQuestions(cmid), ...(ds.admin?.quizQuestions[cmid] ?? [])];
 }
 
 /** Lần truy cập cuối: lấy mốc muộn nhất giữa lần đăng nhập và hoạt động học */
@@ -247,7 +301,7 @@ export interface QuizReport {
 
 /** mod/quiz/report.php?mode=overview (QUIZ-05) */
 export function quizReport(ds: AdminDataset, courseId: number, cmid: number): QuizReport | undefined {
-  const quiz = adminQuiz(cmid);
+  const quiz = effectiveQuiz(ds, cmid);
   if (!quiz) return undefined;
   const rows: QuizReportRow[] = [];
   for (const e of courseEnrolments(ds, courseId)) {
@@ -420,7 +474,25 @@ export function findAdminModule(ds: AdminDataset, cmid: number) {
 
 /** Cài đặt quiz hiện hành = quiz mock + phần admin đã sửa */
 export function effectiveQuiz(ds: AdminDataset, cmid: number): Quiz | undefined {
-  const q = adminQuiz(cmid);
+  let q = adminQuiz(cmid);
+  const added = ds.admin?.addedModules.find((a) => a.module.id === cmid && a.module.modname === "quiz");
+  if (!q && added)
+    q = {
+      id: cmid,
+      coursemodule: cmid,
+      course: added.courseid,
+      name: added.module.name,
+      intro: added.module.description ?? "",
+      timeopen: 0,
+      timeclose: 0,
+      timelimit: 900,
+      attempts: 3,
+      grademethod: 1,
+      sumgrades: 0,
+      grade: 10,
+      gradepass: 8,
+      preferredbehaviour: "deferredfeedback",
+    };
   if (!q) return undefined;
   const p = ds.admin?.quizSettings[cmid];
   if (!p) return q;
@@ -565,7 +637,7 @@ export function adminAlerts(ds: AdminDataset, now: number): AdminAlert[] {
         if (m.modname !== "quiz") continue;
         const q = effectiveQuiz(ds, m.id);
         if (!q) continue;
-        if (!getQuestions(m.id).length)
+        if (!quizQuestionsOf(ds, m.id).length)
           out.push({
             id: `noq-${m.id}`,
             kind: "noQuestions",
@@ -662,4 +734,149 @@ export function createModule(id: number, modname: ModName, name: string, extra: 
     ...defaultCompletion(modname),
     ...extra,
   };
+}
+
+// ---------- Cài đặt bài kiểm tra (Admin QUIZ-01) ----------
+
+const REVIEW_ITEMS: ReviewItem[] = ["attempt", "correctness", "marks", "specificfeedback", "generalfeedback", "rightanswer", "overallfeedback"];
+const all = (v: boolean) => Object.fromEntries(REVIEW_ITEMS.map((k) => [k, v])) as Record<ReviewItem, boolean>;
+
+/**
+ * Mặc định quiz theo rule VIGO (điểm chưa chốt số 5): 3 lượt, đạt 8/10, điểm cao nhất.
+ * Xem lại đáp án: khớp learner hiện tại (xem đáp án đúng ngay sau khi nộp, câu hỏi BA learner số 4).
+ */
+export function quizSettingsOf(ds: AdminDataset, cmid: number): QuizSettings {
+  const q = effectiveQuiz(ds, cmid);
+  const saved = ds.admin?.quizSettings[cmid] ?? {};
+  const mod = findAdminModule(ds, cmid)?.module;
+  const review: Record<ReviewWhen, Record<ReviewItem, boolean>> = {
+    during: { ...all(false), attempt: true },
+    immediately: { ...all(true), specificfeedback: true },
+    open: all(true),
+    closed: all(true),
+  };
+  return {
+    name: mod?.name ?? q?.name ?? "",
+    intro: q?.intro ?? "",
+    showdescription: false,
+    timeopen: q?.timeopen ?? 0,
+    timeclose: q?.timeclose ?? 0,
+    timelimit: q?.timelimit ?? 900,
+    overduehandling: "autosubmit",
+    graceperiod: 0,
+    gradepass: q?.gradepass ?? 8,
+    attempts: q?.attempts ?? 3,
+    grademethod: (q?.grademethod ?? 1) as QuizSettings["grademethod"],
+    questionsperpage: 1,
+    navmethod: "free",
+    shuffleanswers: true,
+    preferredbehaviour: "deferredfeedback",
+    canredoquestions: false,
+    attemptonlast: false,
+    review,
+    showuserpicture: 0,
+    decimalpoints: 2,
+    questiondecimalpoints: -1,
+    showblocks: false,
+    quizpassword: "",
+    subnet: "",
+    delay1: 0,
+    delay2: 0,
+    browsersecurity: "-",
+    visible: (mod?.visible ?? 1) as 0 | 1,
+    idnumber: mod?.idnumber ?? "",
+    groupmode: 0,
+    ...saved,
+  };
+}
+
+// ---------- Nhập câu hỏi Excel (Admin QUIZ-04) ----------
+
+export { QUIZ_COLUMNS, sampleImportRows } from "@/lib/mock/admin/quiz-import";
+
+export interface ImportRow {
+  line: number;
+  cells: string[];
+  errors: { column: string; message: string }[];
+  question?: QuizQuestion;
+}
+
+const TYPE_MAP: Record<string, QuizQuestion["type"]> = { "chọn một": "multichoice", "chọn nhiều": "multichoiceset", "đúng/sai": "truefalse" };
+
+/** Kiểm tra từng dòng, trả lỗi theo dòng và cột (local_quizexcel validate) */
+export function validateImportRows(rows: string[][], startSlot: number): ImportRow[] {
+  return rows.map((cells, i) => {
+    const [type = "", text = "", a = "", b = "", c = "", d = "", e = "", correct = "", mark = ""] = cells.map((x) => (x ?? "").trim());
+    const errors: ImportRow["errors"] = [];
+    const t = TYPE_MAP[type.toLowerCase()];
+    if (!t) errors.push({ column: "Loại câu", message: `"${type || "trống"}" không hợp lệ, dùng Chọn một, Chọn nhiều hoặc Đúng/Sai.` });
+    if (!text) errors.push({ column: "Câu hỏi", message: "Thiếu nội dung câu hỏi." });
+    if (mark && Number.isNaN(Number(mark.replace(",", ".")))) errors.push({ column: "Điểm", message: "Điểm phải là số." });
+    const letters = ["A", "B", "C", "D", "E"];
+    const opts = [a, b, c, d, e];
+    let question: QuizQuestion | undefined;
+    if (t === "truefalse") {
+      const v = correct.toLowerCase();
+      if (v !== "đúng" && v !== "sai") errors.push({ column: "Đáp án đúng", message: "Câu Đúng/Sai cần ghi Đúng hoặc Sai." });
+      else
+        question = {
+          slot: 0,
+          type: t,
+          text: `<p>${text}</p>`,
+          options: [
+            { value: "true", label: "Đúng" },
+            { value: "false", label: "Sai" },
+          ],
+          correct: [v === "đúng" ? "true" : "false"],
+        };
+    } else if (t) {
+      const filled = opts.map((o, k) => ({ letter: letters[k], label: o })).filter((o) => o.label);
+      if (filled.length < 2) errors.push({ column: "Đáp án A-E", message: "Cần ít nhất 2 đáp án." });
+      const picks = correct.split(/[,;\s]+/).filter(Boolean).map((x) => x.toUpperCase());
+      if (!picks.length) errors.push({ column: "Đáp án đúng", message: "Thiếu đáp án đúng." });
+      const missing = picks.filter((p) => !filled.some((f) => f.letter === p));
+      if (missing.length) errors.push({ column: "Đáp án đúng", message: `Đáp án ${missing.join(", ")} để trống.` });
+      if (t === "multichoice" && picks.length > 1) errors.push({ column: "Đáp án đúng", message: "Câu Chọn một chỉ có 1 đáp án đúng." });
+      if (!errors.length)
+        question = {
+          slot: 0,
+          type: t,
+          text: `<p>${text}</p>`,
+          options: filled.map((f) => ({ value: f.letter.toLowerCase(), label: f.label })),
+          correct: picks.map((p) => p.toLowerCase()),
+        };
+    }
+    return { line: i + 2, cells, errors, question: errors.length ? undefined : question && { ...question, slot: startSlot + i } };
+  });
+}
+
+/** Đọc CSV (dấu phẩy, có ngoặc kép) */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell);
+      if (row.some((x) => x.trim())) rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some((x) => x.trim())) rows.push(row);
+  return rows;
 }
