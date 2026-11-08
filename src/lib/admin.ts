@@ -201,20 +201,31 @@ export interface Enrolment {
   suspended: boolean;
 }
 
-/** user/index.php: người được ghi danh vào khóa, lọc theo vai trò (mặc định Học viên) */
+/**
+ * user/index.php: người được ghi danh vào khóa, lọc theo vai trò (mặc định Học viên).
+ * Ghi danh thủ công đọc từ user_enrolments (ghi 1 lần). Đồng bộ phòng ban (enrol_cohort) tính từ thành viên
+ * hiện tại của cohort, nên người mới vào phòng ban tự có trong khóa, như Moodle.
+ */
 export function courseEnrolments(ds: AdminDataset, courseId: number, roleid: number | null = ROLE_STUDENT): Enrolment[] {
   const inst = ds.enrolInstances.filter((i) => i.courseid === courseId);
-  const byUser = new Map<number, { ues: UserEnrolment[]; methods: EnrolInstance[] }>();
-  for (const ue of ds.userEnrolments) {
-    const method = inst.find((i) => i.id === ue.enrolid);
-    if (!method) continue;
-    const entry = byUser.get(ue.userid) ?? { ues: [], methods: [] };
-    entry.ues.push(ue);
+  const byUser = new Map<number, { starts: number[]; active: boolean[]; methods: EnrolInstance[] }>();
+  const add = (userid: number, method: EnrolInstance, timestart: number, active: boolean) => {
+    const entry = byUser.get(userid) ?? { starts: [], active: [], methods: [] };
+    entry.starts.push(timestart);
+    entry.active.push(active && method.status === 0);
     entry.methods.push(method);
-    byUser.set(ue.userid, entry);
+    byUser.set(userid, entry);
+  };
+  for (const method of inst) {
+    if (method.enrol === "cohort") {
+      for (const m of ds.cohortMembers.filter((x) => x.cohortid === method.customint1))
+        add(m.userid, method, Math.max(method.timecreated, m.timeadded), true);
+    } else {
+      for (const ue of ds.userEnrolments.filter((x) => x.enrolid === method.id)) add(ue.userid, method, ue.timestart, ue.status === 0);
+    }
   }
   const out: Enrolment[] = [];
-  for (const [userid, { ues, methods }] of byUser) {
+  for (const [userid, { starts, active, methods }] of byUser) {
     const user = ds.users.find((u) => u.id === userid);
     if (!user) continue;
     const ra = ds.roleAssignments.find((r) => r.courseid === courseId && r.userid === userid);
@@ -224,8 +235,8 @@ export function courseEnrolments(ds: AdminDataset, courseId: number, roleid: num
       user,
       roleid: rid,
       methods,
-      timestart: Math.min(...ues.map((u) => u.timestart)),
-      suspended: user.suspended || ues.every((u) => u.status === 1 || methods[ues.indexOf(u)].status === 1),
+      timestart: Math.min(...starts),
+      suspended: user.suspended || active.every((a) => !a),
     });
   }
   return out.sort((a, b) => a.user.fullname.localeCompare(b.user.fullname, "vi"));
@@ -879,4 +890,34 @@ export function parseCsv(text: string): string[][] {
   row.push(cell);
   if (row.some((x) => x.trim())) rows.push(row);
   return rows;
+}
+
+// ---------- Ghi danh, phòng ban (Admin ENR, COH) ----------
+
+export { ROLE_STUDENT, ROLE_EDITINGTEACHER } from "@/lib/mock/admin/users";
+
+export function cohortMembersOf(ds: AdminDataset, cohortid: number) {
+  const ids = new Set(ds.cohortMembers.filter((m) => m.cohortid === cohortid).map((m) => m.userid));
+  return ds.users.filter((u) => ids.has(u.id));
+}
+
+/** COH-02: khóa đang đồng bộ tự động với phòng ban (enrol_cohort đang bật) */
+export function cohortSyncCourses(ds: AdminDataset, cohortid: number) {
+  const ids = ds.enrolInstances.filter((i) => i.enrol === "cohort" && i.customint1 === cohortid).map((i) => ({ courseid: i.courseid, active: i.status === 0 }));
+  return ids
+    .map((x) => ({ course: getAdminCourse(ds, x.courseid), active: x.active }))
+    .filter((x): x is { course: AdminCourse; active: boolean } => !!x.course);
+}
+
+/** Số người theo từng cách ghi danh của khóa */
+export function enrolInstanceCount(ds: AdminDataset, inst: EnrolInstance) {
+  if (inst.enrol === "cohort") return ds.cohortMembers.filter((m) => m.cohortid === inst.customint1).length;
+  return ds.userEnrolments.filter((u) => u.enrolid === inst.id).length;
+}
+
+export function enrolMethodName(ds: AdminDataset, inst: EnrolInstance) {
+  if (inst.enrol === "manual") return "Ghi danh thủ công";
+  if (inst.enrol === "cohort") return `Đồng bộ phòng ban: ${ds.cohorts.find((c) => c.id === inst.customint1)?.name ?? ""}`;
+  if (inst.enrol === "self") return "Tự ghi danh";
+  return "Khách";
 }

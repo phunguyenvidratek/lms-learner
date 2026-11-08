@@ -55,6 +55,8 @@ function emptyState(): AdminState {
     enrolStatus: {},
     quizQuestions: {},
     defaultCompletion: {},
+    roleAssignments: [],
+    deletedEnrolInstances: [],
   };
 }
 
@@ -225,12 +227,17 @@ const actions = {
     update((s) => ({ ...s, updatedUsers: { ...s.updatedUsers, [id]: { ...s.updatedUsers[id], ...patch } } }));
   },
   /** enrol_manual_enrol_users / thêm instance enrol_cohort */
-  addEnrolments(instances: EnrolInstance[], enrolments: UserEnrolment[]) {
+  addEnrolments(instances: EnrolInstance[], enrolments: UserEnrolment[], roles: AdminState["roleAssignments"] = []) {
     update((s) => ({
       ...s,
       enrolInstances: [...s.enrolInstances, ...instances],
       userEnrolments: [...s.userEnrolments, ...enrolments],
+      roleAssignments: [...s.roleAssignments, ...roles],
     }));
+  },
+  /** enrol/instances.php: xóa cách ghi danh (kèm lượt ghi danh của nó) */
+  deleteEnrolInstance(id: number) {
+    update((s) => ({ ...s, deletedEnrolInstances: [...s.deletedEnrolInstances, id] }));
   },
   /** Bỏ mọi thay đổi của admin (dữ liệu learner giữ nguyên) */
   reset() {
@@ -249,10 +256,11 @@ function mergeDataset(base: AdminDataset, s: AdminState | null): AdminDataset {
     users: [...base.users, ...s.users].map(patchUser),
     cohorts: [...base.cohorts, ...s.cohorts],
     cohortMembers: [...base.cohortMembers, ...s.cohortMembers],
-    enrolInstances: [...base.enrolInstances, ...s.enrolInstances].map((i) =>
-      s.enrolStatus[i.id] !== undefined ? { ...i, status: s.enrolStatus[i.id] } : i,
-    ),
+    enrolInstances: [...base.enrolInstances, ...s.enrolInstances]
+      .filter((i) => !s.deletedEnrolInstances.includes(i.id))
+      .map((i) => (s.enrolStatus[i.id] !== undefined ? { ...i, status: s.enrolStatus[i.id] } : i)),
     userEnrolments: [...base.userEnrolments, ...s.userEnrolments],
+    roleAssignments: [...base.roleAssignments, ...s.roleAssignments],
     admin: s,
   };
 }

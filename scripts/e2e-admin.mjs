@@ -95,6 +95,55 @@ assert.match(await sentence.innerText(), /hoàn thành 13 bài học và đạt 
 await page.getByRole("button", { name: "Hủy thay đổi" }).click();
 step("Câu tóm tắt quy tắc hoàn thành đổi ngay khi tick");
 
+// ---------- 5. Ghi danh phòng ban, đồng bộ tự động ----------
+await open("/admin/courses/17/participants");
+await page.getByText("Khóa chưa có học viên").waitFor();
+await open("/admin/courses/17/enrolments");
+await page.getByRole("button", { name: "Thêm đồng bộ phòng ban" }).click();
+await page.getByRole("dialog").getByRole("combobox").first().selectOption({ label: "Marketing (3 người)" });
+await page.getByRole("dialog").getByRole("button", { name: "Thêm" }).click();
+await page.getByText("Đồng bộ phòng ban: Marketing").waitFor();
+await open("/admin/courses/17/participants");
+await page.getByText("3 học viên, 2 giảng viên").waitFor();
+step("Đồng bộ phòng ban Marketing vào khóa nháp: 3 học viên");
+
+await open("/admin/users/new");
+await page.locator("#u-lastname").fill("Đào");
+await page.locator("#u-firstname").fill("Minh Tú");
+await page.locator("#u-email").fill("minhtu.dao@vigo.vn");
+await page.locator("#u-username").fill("minhtu.dao");
+await page.locator("#u-cohort").selectOption({ label: "Marketing" });
+await page.getByRole("button", { name: "Tạo người dùng" }).click();
+await page.waitForURL(/\/admin\/users$/);
+await page.getByText("minhtu.dao@vigo.vn").waitFor();
+await open("/admin/courses/17/participants");
+await page.getByText("4 học viên, 2 giảng viên").waitFor();
+assert.ok(await page.getByText("Đào Minh Tú").isVisible(), "Người mới vào phòng ban tự có trong khóa đồng bộ");
+step("Thêm người dùng mới vào Marketing: tự vào khóa đồng bộ (4 học viên)");
+
+await open("/admin");
+assert.equal(await page.getByText("Khóa chưa có học viên: Chăm sóc da tại nhà sau điều trị").count(), 0);
+step("Tổng quan bỏ cảnh báo khóa chưa có học viên");
+
+// ---------- 6. Số liệu admin khớp learner ----------
+const learnerPct = async () => {
+  await open("/admin/courses/11/participants");
+  await page.getByLabel("Tìm theo tên hoặc email").fill("Trần Minh Anh");
+  return page.locator("tr", { hasText: "Trần Minh Anh" }).locator("span.tabular-nums").innerText();
+};
+const before = await learnerPct();
+await page.evaluate(() => {
+  const key = "vigo-lms:state:v1";
+  const s = JSON.parse(localStorage.getItem(key));
+  s.session = { username: "minhanh.tran", via: "password", at: Math.floor(Date.now() / 1000) };
+  localStorage.setItem(key, JSON.stringify(s));
+});
+await open("/learn/11/1113");
+await page.waitForTimeout(800);
+const after = await learnerPct();
+assert.notEqual(after, before, `% của Trần Minh Anh phải đổi (trước ${before}, sau ${after})`);
+step(`Học viên mở bài đọc bên learner, % ở admin đổi theo: ${before} -> ${after}`);
+
 if (errors.length) {
   console.error("Lỗi trên trang:", errors);
   process.exitCode = 1;

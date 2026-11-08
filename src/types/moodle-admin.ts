@@ -228,6 +228,10 @@ export interface AdminState {
   enrolStatus: Record<number, 0 | 1>;
   /** Câu hỏi thêm vào quiz (nhập Excel): cmid -> câu hỏi */
   quizQuestions: Record<number, QuizQuestion[]>;
+  /** role_assignments thêm khi ghi danh với vai trò khác Học viên */
+  roleAssignments: { courseid: number; userid: number; roleid: number }[];
+  /** enrol/instances.php: cách ghi danh đã xóa */
+  deletedEnrolInstances: number[];
   /** course/defaultcompletion.php: mặc định hoàn thành theo loại bài của từng khóa, khóa "courseid:modname" */
   defaultCompletion: Record<string, Pick<AdminModule, "completion" | "completionview" | "completionpercent" | "completionusegrade" | "completionpassgrade">>;
 }

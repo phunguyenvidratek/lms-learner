@@ -172,6 +172,8 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
   truyền nên dùng mặc định (mọi bài có theo dõi hoàn thành, quiz phải đạt); admin truyền điều kiện đã sửa ở COMP.
 - Nhập câu hỏi Excel (QUIZ-04): file .csv đọc thật, file .xlsx dùng 8 dòng mẫu có 2 dòng lỗi (`quiz-import.ts`).
 - Kiểm tra luồng admin: `node scripts/e2e-admin.mjs http://localhost:3000`.
+- Ghi danh: Ghi danh thủ công đọc `user_enrolments` (ghi 1 lần). Đồng bộ phòng ban (enrol_cohort) tính từ thành viên
+  hiện tại của cohort trong `courseEnrolments()`, nên thêm người vào phòng ban là tự vào khóa đồng bộ (ENR-02).
 - Không ghi mật khẩu thật vào mock, trường mật khẩu dùng placeholder.
 
 ### Map màn hình admin
@@ -191,14 +193,14 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | QUIZ-05 | /admin/quiz/[cmId]/results | /mod/quiz/report.php?id=&mode=overview | Đã dựng |
 | QUIZ-06 | /admin/courses/[id]/question-banks, /admin/question-banks | /question/banks.php?courseid= | Đã dựng |
 | COMP-01..03 | /admin/courses/[id]/completion (+ /default, /bulk) | /course/completion.php?id=, /course/defaultcompletion.php?id=, /course/bulkcompletion.php?id= | Đã dựng |
-| ENR-01..03 | /admin/courses/[id]/participants | /user/index.php?id= | Chưa dựng |
-| ENR-04 | /admin/courses/[id]/enrolments | /enrol/instances.php?id= | Chưa dựng |
+| ENR-01..03 | /admin/courses/[id]/participants | /user/index.php?id= | Đã dựng |
+| ENR-04 | /admin/courses/[id]/enrolments | /enrol/instances.php?id= | Đã dựng |
 | RPT-04 | /admin/courses/[id]/grades | /grade/report/grader/index.php?id= | Chưa dựng |
 | RPT-03 | /admin/courses/[id]/reports/progress | /report/progress/index.php?course= | Chưa dựng |
 | SHELL-05 | /admin/courses/[id]/reports | /report/view.php?courseid= | Chưa dựng |
 | SHELL-05 (Thêm) | /admin/courses/[id]/reuse, /admin/courses/[id]/recyclebin | /backup/import.php?id=, /admin/tool/recyclebin/index.php?contextid= | Chưa dựng |
-| USER-01..03 | /admin/users, /admin/users/new, /admin/users/[id]/edit, /admin/users/upload | /admin/user.php, /user/editadvanced.php?id=-1, ?id=, /admin/tool/uploaduser/index.php | Chưa dựng |
-| COH-01, 02 | /admin/cohorts | /cohort/index.php | Chưa dựng |
+| USER-01..03 | /admin/users, /admin/users/new, /admin/users/[id]/edit, /admin/users/upload | /admin/user.php, /user/editadvanced.php?id=-1, ?id=, /admin/tool/uploaduser/index.php | Đã dựng |
+| COH-01, 02 | /admin/cohorts | /cohort/index.php | Đã dựng |
 | RPT-01, 02 | /admin/reports, /admin/reports/[reportId] | /reportbuilder/index.php, /reportbuilder/view.php?id= | Chưa dựng |
 | NOTI-01 | /admin/calendar | /calendar/view.php?view=month | Chưa dựng |
 | NOTI-02, HOME-03 | /admin/announcements, /admin/announcements/new | /mod/forum/view.php?f=, /mod/forum/post.php?forum= | Chưa dựng |
@@ -240,3 +242,6 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
     theo 8/10 của dữ liệu mẫu vì learner không đọc store admin.
 15. Nhập Excel (QUIZ-04): dòng lỗi được bỏ qua nếu tick "Bỏ qua dòng lỗi". VIGO muốn cho nhập một phần hay bắt sửa
     hết lỗi rồi mới nhập?
+16. Ghi danh (ENR-02): hộp Ghi danh chỉ thêm vai trò Học viên, Giảng viên, Trợ giảng. Ai được quyền gán vai trò nào
+    (Manager, Course creator) cần chốt cùng phân quyền phòng ban (Điểm chưa chốt số 3).
+17. Nhập người dùng (USER-03): cột cohort1 nhận mã phòng ban (CM-HCM...). Phòng Đào tạo có danh sách mã chuẩn chưa?
