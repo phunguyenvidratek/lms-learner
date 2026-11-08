@@ -5,54 +5,12 @@
  * - An toàn và xử lý biến chứng: đã đạt Phần 1 ở lần làm thứ 2, đang học Phần 2.
  * - Kỹ thuật tiêm, Ứng dụng chuyên sâu: chưa mở theo lộ trình.
  */
-import { announcements, courseContents, quizzes } from "@/lib/mock/data";
-import { getQuestions, gradeAnswers, isTracked, type LearnerState } from "@/lib/learning";
+import { announcements } from "@/lib/mock/data";
+import type { LearnerState } from "@/lib/learning";
+import { attempt, completeSections } from "@/lib/mock/progress-helpers";
 import { at, nowSeconds } from "@/lib/mock/time";
 import { formatDate } from "@/lib/utils";
-import type { Notification, StoredAttempt } from "@/types/moodle";
-
-/** Sinh câu trả lời có đúng `wrong` câu sai (để xem lại đáp án được) */
-function answersWithWrong(cmid: number, wrong: number) {
-  const answers: Record<number, string[]> = {};
-  getQuestions(cmid).forEach((q, i) => {
-    const correct = q.correct ?? [];
-    if (i < wrong) {
-      const bad = q.options.find((o) => !correct.includes(o.value))!.value;
-      answers[q.slot] = [bad];
-    } else answers[q.slot] = [...correct];
-  });
-  return answers;
-}
-
-function attempt(cmid: number, n: number, wrong: number, finish: number): StoredAttempt {
-  const quiz = quizzes.find((q) => q.coursemodule === cmid)!;
-  const answers = answersWithWrong(cmid, wrong);
-  const { sumgrades, grade } = gradeAnswers(getQuestions(cmid), answers, quiz);
-  return {
-    id: cmid * 10 + n,
-    quiz: quiz.id,
-    attempt: n,
-    state: "finished",
-    timestart: finish - 11 * 60 - wrong * 37,
-    timefinish: finish,
-    sumgrades,
-    grade,
-    answers,
-  };
-}
-
-/** Đánh dấu hoàn thành mọi module (trừ quiz) của các phần, rải đều từ ngày `from` */
-function completeSections(courseId: number, sections: number[], from: number, out: Record<number, number>) {
-  let i = 0;
-  for (const s of courseContents[courseId]) {
-    if (!sections.includes(s.section)) continue;
-    for (const m of s.modules) {
-      if (!isTracked(m) || m.modname === "quiz") continue;
-      out[m.id] = at(from + Math.floor(i / 3), 19 + (i % 3), 10 + i * 7 % 40);
-      i++;
-    }
-  }
-}
+import type { Notification } from "@/types/moodle";
 
 export function createSeedState(): LearnerState {
   const completions: Record<number, number> = {};

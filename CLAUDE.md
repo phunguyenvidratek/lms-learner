@@ -124,3 +124,98 @@ Thứ tự dựng gợi ý: CDET > LEARN > QUIZ > DASH > TEST > NOTI > GRADE > C
 7. Chứng nhận (CERT-01): mẫu đang tự thiết kế theo nhận diện VIGO, ký tên "Phòng Đào tạo VIGO". Cần mẫu chính thức,
    người ký và plugin (Custom certificate) để sinh PDF phía server.
 8. Hạn nộp bài kiểm tra: đang đặt hạn cho từng bài (timeclose). Quá hạn chưa đạt thì xử lý thế nào?
+
+## Admin portal (mockup theme Moodle)
+
+Mockup giao diện quản trị sau khi đổi theme, để dev thấy trước. Admin thật vẫn là Moodle 5.1 + Boost Union,
+chỉ đổi theme (cấu hình, child theme, vài block/plugin nhỏ). Vì vậy mockup giữ đúng luồng, URL, field của Moodle,
+chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
+
+### Nguồn sự thật
+
+1. Backlog: `docs/admin/admin-backlog.md` (bản text của `VidratekLMS_Admin_UX_Backlog_v0.1.xlsx`). Mã dạng `CED-01`.
+   Trùng tiền tố với learner (SHELL, DASH, QUIZ, NOTI, CERT, CAT) nên khi ghi comment dùng dạng `Admin CED-01`
+   nếu dễ nhầm. Ưu tiên Must > Should > Could.
+2. Ảnh hiện trạng Moodle: `docs/admin/reference/moodle-admin/<tên>.jpg`, tên khớp cột Ảnh trong backlog
+   (backlog ghi `docs/reference/moodle-admin`, đường dẫn thật có thêm `admin/`).
+3. Prompt từng phiên: `docs/admin/admin-mockup-prompts.md`.
+
+### Ràng buộc
+
+- Không thêm bước, field, luồng mà Moodle không có. Chỉ đổi trình bày, thứ tự, nhãn, gom nhóm, thu gọn.
+  Field ít dùng thì thu gọn ("Hiện thêm", "Nâng cao"), không bỏ. Thấy cần thêm thì ghi vào "Câu hỏi cho BA (admin)".
+- Đầu mỗi page admin ghi mã backlog và URL Moodle tương ứng, ví dụ
+  `/** Admin CED-01..07. Moodle: /course/view.php?id={id}&edit=on */`.
+- Mã backlog, tên API, "mock" chỉ nằm trong comment, không hiện trên giao diện. Text tiếng Việt, thuật ngữ VIGO:
+  Cohort = Phòng ban, Activity = Bài học, Quiz = Bài kiểm tra, Participants = Học viên.
+- Không đụng route và component learner. Admin nằm dưới `/admin`, layout riêng `src/app/admin/layout.tsx`,
+  không qua màn đăng nhập (người dùng cố định: Đỗ Ngọc Lan, Quản lý, Phòng Đào tạo).
+- Dùng chung token `globals.css` và `src/components/ui`; `src/components/common` dùng được.
+  Không import `src/components/layout` của learner. Component admin ở `src/components/admin/<nhóm>`.
+- Nội dung rộng tối đa 1200px, trang báo cáo và bảng lớn full width (SHELL-01).
+
+### Dữ liệu
+
+- Mock quản trị: `src/lib/mock/admin/*` (`courses.ts` danh mục + khóa + 2 khóa nháp ẩn, `users.ts` người dùng +
+  phòng ban + vai trò, `enrolments.ts` cách ghi danh + lượt ghi danh, `learner-profiles.ts` tiến độ học viên khác).
+  Type ở `src/types/moodle-admin.ts`, giữ tên field Moodle.
+- Đọc phía server qua `src/lib/admin-data.ts` (hàm đặt tên theo Moodle WS). Component không import `src/lib/mock`.
+- Logic tính ở `src/lib/admin.ts` (`courseRoster`, `courseStats`, `quizReport`, `siteOverview`...). Mọi % và trạng thái
+  đi qua `buildAllCourses()`/`summarizeQuiz()` của `src/lib/learning.ts`, nên số liệu admin khớp learner:
+  - Trần Minh Anh (2048) = người học trên learner portal, admin đọc state thật qua `useLearning()`.
+  - Học viên khác: hồ sơ ngắn trong `learner-profiles.ts` dựng thành `LearnerState`, dùng helper chung
+    `src/lib/mock/progress-helpers.ts` (cùng helper với `seed.ts`).
+- Thay đổi admin tạo ra (thêm bài, sửa cài đặt, ghi danh, thêm người): store `src/lib/store/admin-store.tsx`
+  (`useAdmin()`, localStorage `vigo-lms:admin:v1`, `?reset=1` xóa cùng learner). Hàm của `admin.ts` nhận `ds` từ
+  `useAdmin()`. **Không đồng bộ sang learner** (learner đọc nội dung khóa ở server). Đã chốt với PO.
+- Không ghi mật khẩu thật vào mock, trường mật khẩu dùng placeholder.
+
+### Map màn hình admin
+
+| Mã | Route mockup | URL Moodle | Trạng thái |
+| --- | --- | --- | --- |
+| SHELL-01..07 | `src/app/admin/layout.tsx` (header, sidebar, page header, tab khóa) | Mọi trang | Chưa dựng |
+| DASH-01..04, HOME-01 | /admin | /my/ | Chưa dựng |
+| MYC-01..04 | /admin/my-courses | /my/courses.php | Chưa dựng |
+| CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Chưa dựng |
+| CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Chưa dựng |
+| CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Chưa dựng |
+| CED-07 | Nút Xem như học viên | /course/switchrole.php?id=&switchrole=5 (mockup mở learner /courses/[id]) | Chưa dựng |
+| ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Chưa dựng |
+| QUIZ-02, 03 | /admin/quiz/[cmId]/edit | /mod/quiz/edit.php?cmid= | Chưa dựng |
+| QUIZ-04 | /admin/quiz/[cmId]/import | /local/quizexcel/import.php?cmid= | Chưa dựng |
+| QUIZ-05 | /admin/quiz/[cmId]/results | /mod/quiz/report.php?id=&mode=overview | Chưa dựng |
+| QUIZ-06 | /admin/courses/[id]/question-banks, /admin/question-banks | /question/banks.php?courseid= | Chưa dựng |
+| COMP-01..03 | /admin/courses/[id]/completion (+ /default, /bulk) | /course/completion.php?id=, /course/defaultcompletion.php?id=, /course/bulkcompletion.php?id= | Chưa dựng |
+| ENR-01..03 | /admin/courses/[id]/participants | /user/index.php?id= | Chưa dựng |
+| ENR-04 | /admin/courses/[id]/enrolments | /enrol/instances.php?id= | Chưa dựng |
+| RPT-04 | /admin/courses/[id]/grades | /grade/report/grader/index.php?id= | Chưa dựng |
+| RPT-03 | /admin/courses/[id]/reports/progress | /report/progress/index.php?course= | Chưa dựng |
+| SHELL-05 | /admin/courses/[id]/reports | /report/view.php?courseid= | Chưa dựng |
+| SHELL-05 (Thêm) | /admin/courses/[id]/reuse, /admin/courses/[id]/recyclebin | /backup/import.php?id=, /admin/tool/recyclebin/index.php?contextid= | Chưa dựng |
+| USER-01..03 | /admin/users, /admin/users/new, /admin/users/[id]/edit, /admin/users/upload | /admin/user.php, /user/editadvanced.php?id=-1, ?id=, /admin/tool/uploaduser/index.php | Chưa dựng |
+| COH-01, 02 | /admin/cohorts | /cohort/index.php | Chưa dựng |
+| RPT-01, 02 | /admin/reports, /admin/reports/[reportId] | /reportbuilder/index.php, /reportbuilder/view.php?id= | Chưa dựng |
+| NOTI-01 | /admin/calendar | /calendar/view.php?view=month | Chưa dựng |
+| NOTI-02, HOME-03 | /admin/announcements, /admin/announcements/new | /mod/forum/view.php?f=, /mod/forum/post.php?forum= | Chưa dựng |
+| CERT-01 | - | /badges, chưa có plugin | Không dựng (chờ chốt plugin) |
+| HOME-02, HOME-04 | - | /?redirect=0 | Không dựng (HOME-01 đặt Tổng quan làm trang đầu) |
+
+## Câu hỏi cho BA (admin)
+
+1. Ngân hàng câu hỏi trên sidebar (SHELL-03): Moodle 5.1 chỉ có bank theo từng khóa (`/question/banks.php?courseid=`),
+   không có trang cấp site. Mockup đề xuất trang chọn khóa rồi vào bank của khóa. Có chấp nhận không?
+2. Bài kiểm tra, bài học admin thêm trong mockup không hiện bên learner (đã chốt: chỉ lưu store admin).
+   Khi trình bày cần nói rõ đây là giới hạn của mockup, không phải của Moodle.
+3. Bài chờ chấm (DASH-01, DASH-03): nội dung hiện chỉ có video, bài đọc, tài liệu, link, quiz tự chấm, chưa có
+   Assignment nên chỉ số luôn bằng 0. VIGO có dùng bài nộp (bài thu hoạch, liên quan câu 3 phía learner) không,
+   hay thay bằng "học viên hết lượt chưa đạt"?
+4. Video Drive (ACT-02, CED-01): mockup dựng theo hướng A (module `mod_drivevideo` riêng: tên, link Drive, thời lượng,
+   xem trước) cho khớp learner. Chưa chốt (Điểm chưa chốt số 2, người chốt: Thiện, Đạt Trần, Duy).
+5. Phòng ban (ENR-02, USER-01, USER-02, COH-01): mockup theo đề xuất BA, cohort là chuẩn ghi danh và có thêm
+   profile field `phongban` để hiện trên danh sách. Chưa chốt (Điểm chưa chốt số 3, người chốt: Thiện).
+6. Field core "Department" của Moodle đang dùng làm chức danh ("Nhân viên chuyên môn", khớp hồ sơ learner),
+   phòng ban nằm ở cohort và profile field. Xác nhận cách dùng này.
+7. Các điểm chưa chốt còn lại trong backlog: ngôn ngữ admin (SHELL-06), 4 chỉ số Tổng quan (DASH-01),
+   mặc định quiz và rule pass (QUIZ-01, ACT-06; mockup dùng 3 lượt, đạt 8/10, điểm cao nhất như learner),
+   JS sắp xếp form (ACT-04, CSET-02, COMP-01), plugin chứng nhận (CERT-01), tổ chức question bank (QUIZ-06).
