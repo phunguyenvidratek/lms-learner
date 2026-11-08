@@ -144,6 +144,57 @@ const after = await learnerPct();
 assert.notEqual(after, before, `% của Trần Minh Anh phải đổi (trước ${before}, sau ${after})`);
 step(`Học viên mở bài đọc bên learner, % ở admin đổi theo: ${before} -> ${after}`);
 
+// ---------- 7. Chấm bài nộp, tạo khóa, báo cáo ----------
+await open("/admin");
+await page.getByText("1 bài nộp chờ chấm: Bài thu hoạch: tình huống tư vấn thực tế").waitFor();
+await open("/admin/courses/11/grades");
+await page.getByText("Chờ chấm").waitFor();
+await page.getByRole("switch", { name: "Bật nhập điểm" }).click();
+await page.getByLabel("Điểm Bài thu hoạch: tình huống tư vấn thực tế của Nguyễn Hồng Nhung").fill("78");
+await page.getByRole("button", { name: "Lưu điểm" }).click();
+await page.getByText("78/100").waitFor();
+await open("/admin");
+assert.equal(await page.getByText(/bài nộp chờ chấm/).count(), 0, "Chấm xong thì hết cảnh báo chờ chấm");
+step("Chấm bài nộp ở Sổ điểm, cảnh báo Bài chờ chấm mất");
+
+await open("/admin/courses/new?category=4");
+await page.locator("#c-fullname").fill("Khóa thử nghiệm Rejuran HB");
+await page.locator("#c-shortname").fill("RJR-HB");
+await page.getByRole("radio").nth(2).click();
+assert.ok(await page.getByText("Khóa thử nghiệm Rejuran HB").last().isVisible(), "Xem trước thẻ khóa cập nhật theo tên");
+await page.getByRole("button", { name: "Lưu và soạn nội dung" }).click();
+await page.waitForURL(/\/admin\/courses\/\d+\/edit/);
+await page.getByRole("heading", { name: "Phần 4" }).waitFor();
+step("Tạo khóa mới (xem trước thẻ, 4 phần mặc định), vào thẳng trang soạn");
+
+await open("/admin/reports/tien-do-phong-ban");
+const allRows = await page.locator("tbody tr").count();
+await page.getByLabel("Phòng ban").selectOption({ label: "Marketing" });
+assert.equal(await page.locator("tbody tr").count(), 1);
+assert.ok(allRows >= 7);
+step("Báo cáo tiến độ theo phòng ban lọc được");
+
+// ---------- 1. Mọi route admin mở được, không cuộn ngang ở 375px ----------
+const routes = [
+  "/admin", "/admin/my-courses", "/admin/courses", "/admin/courses/new", "/admin/question-banks",
+  "/admin/users", "/admin/users/new", "/admin/users/2001/edit", "/admin/users/upload", "/admin/cohorts",
+  "/admin/reports", "/admin/reports/chua-hoan-thanh", "/admin/reports/hoat-dong", "/admin/reports/ket-qua-kiem-tra", "/admin/reports/tien-do-khoa",
+  "/admin/calendar", "/admin/announcements", "/admin/announcements/new",
+  "/admin/courses/11/edit", "/admin/courses/11/settings", "/admin/courses/11/participants", "/admin/courses/11/enrolments",
+  "/admin/courses/11/grades", "/admin/courses/11/completion", "/admin/courses/11/completion/default", "/admin/courses/11/completion/bulk",
+  "/admin/courses/11/reports", "/admin/courses/11/reports/progress", "/admin/courses/11/question-banks", "/admin/courses/11/reuse",
+  "/admin/courses/11/recyclebin", "/admin/courses/11/modedit?update=1113", "/admin/courses/11/modedit?add=assign&section=1",
+  "/admin/quiz/1116/edit", "/admin/quiz/1116/import", "/admin/quiz/1116/results",
+];
+await page.setViewportSize({ width: 375, height: 812 });
+for (const r of routes) {
+  await open(r);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert.ok(overflow <= 1, `${r} cuộn ngang ${overflow}px ở 375px`);
+  assert.equal(await page.getByText("Không tìm thấy trang").count(), 0, `${r} không tồn tại`);
+}
+step(`${routes.length} route admin mở được, không cuộn ngang ở 375px`);
+
 if (errors.length) {
   console.error("Lỗi trên trang:", errors);
   process.exitCode = 1;

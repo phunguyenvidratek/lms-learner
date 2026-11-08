@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { userCohorts } from "@/lib/admin";
 import { newId, useAdmin } from "@/lib/store/admin-store";
 import type { AdminUser } from "@/types/moodle-admin";
-import { CheckRow, DisabledGroupsNote, ExpandAll, Field, FormSection, NativeSelect, StickySaveBar, Textarea } from "../common/form";
+import { CheckRow, DisabledGroupsNote, ExpandAll, FileButton, Field, FormSection, NativeSelect, StickySaveBar, Textarea } from "../common/form";
 import { AdminPage, AdminPageHeader } from "../layout/page-header";
 
 export function UserForm({ userId }: { userId?: number }) {
@@ -196,7 +196,7 @@ export function UserForm({ userId }: { userId?: number }) {
 
         <FormSection title="Ảnh đại diện" defaultOpen={expanded} key={`p${expanded}`}>
           <Field label="Ảnh mới" htmlFor="u-pic">
-            <input id="u-pic" type="file" accept="image/*" className="text-sm" />
+            <FileButton id="u-pic" accept="image/*" label="Chọn ảnh" onFile={() => {}} />
           </Field>
         </FormSection>
 

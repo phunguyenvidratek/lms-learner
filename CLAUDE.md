@@ -183,8 +183,8 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | SHELL-01..07 | `src/app/admin/layout.tsx` (header, sidebar, page header, tab khóa) | Mọi trang | Đã dựng |
 | DASH-01..04, HOME-01 | /admin | /my/ | Đã dựng |
 | MYC-01..04 | /admin/my-courses | /my/courses.php | Đã dựng |
-| CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Chưa dựng |
-| CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Chưa dựng |
+| CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Đã dựng |
+| CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Đã dựng |
 | CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Đã dựng |
 | CED-07 | Nút Xem như học viên | /course/switchrole.php?id=&switchrole=5 (mockup mở learner /courses/[id]) | Đã dựng |
 | ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Đã dựng |
@@ -195,15 +195,15 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | COMP-01..03 | /admin/courses/[id]/completion (+ /default, /bulk) | /course/completion.php?id=, /course/defaultcompletion.php?id=, /course/bulkcompletion.php?id= | Đã dựng |
 | ENR-01..03 | /admin/courses/[id]/participants | /user/index.php?id= | Đã dựng |
 | ENR-04 | /admin/courses/[id]/enrolments | /enrol/instances.php?id= | Đã dựng |
-| RPT-04 | /admin/courses/[id]/grades | /grade/report/grader/index.php?id= | Chưa dựng |
-| RPT-03 | /admin/courses/[id]/reports/progress | /report/progress/index.php?course= | Chưa dựng |
-| SHELL-05 | /admin/courses/[id]/reports | /report/view.php?courseid= | Chưa dựng |
-| SHELL-05 (Thêm) | /admin/courses/[id]/reuse, /admin/courses/[id]/recyclebin | /backup/import.php?id=, /admin/tool/recyclebin/index.php?contextid= | Chưa dựng |
+| RPT-04 | /admin/courses/[id]/grades | /grade/report/grader/index.php?id= | Đã dựng |
+| RPT-03 | /admin/courses/[id]/reports/progress | /report/progress/index.php?course= | Đã dựng |
+| SHELL-05 | /admin/courses/[id]/reports | /report/view.php?courseid= | Đã dựng |
+| SHELL-05 (Thêm) | /admin/courses/[id]/reuse, /admin/courses/[id]/recyclebin | /backup/import.php?id=, /admin/tool/recyclebin/index.php?contextid= | Đã dựng |
 | USER-01..03 | /admin/users, /admin/users/new, /admin/users/[id]/edit, /admin/users/upload | /admin/user.php, /user/editadvanced.php?id=-1, ?id=, /admin/tool/uploaduser/index.php | Đã dựng |
 | COH-01, 02 | /admin/cohorts | /cohort/index.php | Đã dựng |
-| RPT-01, 02 | /admin/reports, /admin/reports/[reportId] | /reportbuilder/index.php, /reportbuilder/view.php?id= | Chưa dựng |
-| NOTI-01 | /admin/calendar | /calendar/view.php?view=month | Chưa dựng |
-| NOTI-02, HOME-03 | /admin/announcements, /admin/announcements/new | /mod/forum/view.php?f=, /mod/forum/post.php?forum= | Chưa dựng |
+| RPT-01, 02 | /admin/reports, /admin/reports/[reportId] | /reportbuilder/index.php, /reportbuilder/view.php?id= | Đã dựng |
+| NOTI-01 | /admin/calendar | /calendar/view.php?view=month | Đã dựng |
+| NOTI-02, HOME-03 | /admin/announcements, /admin/announcements/new | /mod/forum/view.php?f=, /mod/forum/post.php?forum= | Đã dựng |
 | CERT-01 | - | /badges, chưa có plugin | Không dựng (chờ chốt plugin) |
 | HOME-02, HOME-04 | - | /?redirect=0 | Không dựng (HOME-01 đặt Tổng quan làm trang đầu) |
 
@@ -245,3 +245,11 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 16. Ghi danh (ENR-02): hộp Ghi danh chỉ thêm vai trò Học viên, Giảng viên, Trợ giảng. Ai được quyền gán vai trò nào
     (Manager, Course creator) cần chốt cùng phân quyền phòng ban (Điểm chưa chốt số 3).
 17. Nhập người dùng (USER-03): cột cohort1 nhận mã phòng ban (CM-HCM...). Phòng Đào tạo có danh sách mã chuẩn chưa?
+18. Báo cáo (RPT-01): 4 báo cáo theo đề xuất + "Học viên hoạt động" cho thẻ DASH-01. Lịch gửi email và người nhận
+    đang ghi tạm (thứ Hai 8:00, Phòng Đào tạo, trưởng phòng ban). Cần chốt với Vi.
+19. Sổ điểm (RPT-04): màu đạt/không đạt theo gradepass (quiz 8/10, bài nộp 50/100). Bài nộp chưa có điểm đạt trong
+    dữ liệu mẫu, đang giả định 50. Cần kiểm trên sandbox việc tô màu bằng theme (Notes của backlog).
+20. Lịch (NOTI-01): sự kiện hạn bài kiểm tra trùng tên giữa các khóa ("Hạn nộp: Kiểm tra Phần 2"). Có nên đổi tên
+    bài kiểm tra kèm mã khóa, hay chấp nhận xem tên khóa khi rê chuột?
+21. Tạo khóa (CSET-01): bộ mặc định đang dùng: Theo chủ đề, 4 phần, phần ẩn không hiện, bật theo dõi hoàn thành,
+    hiện điều kiện, khóa mới để Ẩn. Chốt với Vi.

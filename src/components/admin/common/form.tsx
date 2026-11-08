@@ -118,7 +118,7 @@ const control =
   "w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60";
 
 export function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
-  return <select className={cn(control, "h-10 pr-8", className)} {...props} />;
+  return <select className={cn(control, "h-10 max-w-full pr-8", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
@@ -259,5 +259,46 @@ export function DisabledGroupsNote({ groups }: { groups: string[] }) {
     <p className="rounded-lg border border-dashed px-4 py-3 text-xs text-muted-foreground">
       Không hiện vì đã tắt ở cấp hệ thống: {groups.join(", ")}.
     </p>
+  );
+}
+
+/** Nút chọn tệp tiếng Việt (ô file gốc của trình duyệt hiện chữ tiếng Anh) */
+export function FileButton({
+  id,
+  accept,
+  label = "Chọn tệp",
+  fileName,
+  onFile,
+}: {
+  id?: string;
+  accept?: string;
+  label?: string;
+  fileName?: string;
+  onFile: (f: File) => void;
+}) {
+  const [name, setName] = useState("");
+  const shown = fileName ?? name;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <label
+        htmlFor={id}
+        className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-card px-3 text-sm font-semibold shadow-xs hover:bg-accent focus-within:ring-[3px] focus-within:ring-ring/50"
+      >
+        {label}
+        <input
+          id={id}
+          type="file"
+          accept={accept}
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            setName(f.name);
+            onFile(f);
+          }}
+        />
+      </label>
+      <span className="text-sm text-muted-foreground">{shown || "Chưa chọn tệp"}</span>
+    </div>
   );
 }

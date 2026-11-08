@@ -12,9 +12,10 @@
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import { baseDataset, type AdminDataset } from "@/lib/admin";
 import { useLearning } from "@/lib/store/learning-store";
-import type { Announcement, ModName, QuizQuestion } from "@/types/moodle";
+import type { ModName, QuizQuestion } from "@/types/moodle";
 import type {
   AddedModule,
+  AdminAnnouncement,
   AdminCourse,
   AdminModule,
   AdminState,
@@ -22,6 +23,7 @@ import type {
   Cohort,
   CohortMember,
   CompletionCriteria,
+  CourseCategory,
   EnrolInstance,
   QuizSettings,
   UserEnrolment,
@@ -57,6 +59,8 @@ function emptyState(): AdminState {
     defaultCompletion: {},
     roleAssignments: [],
     deletedEnrolInstances: [],
+    categories: [],
+    assignGrades: {},
   };
 }
 
@@ -154,8 +158,16 @@ const actions = {
   addCohortMembers(members: CohortMember[]) {
     update((s) => ({ ...s, cohortMembers: [...s.cohortMembers, ...members] }));
   },
+  /** course/editcategory.php */
+  addCategory(c: CourseCategory) {
+    update((s) => ({ ...s, categories: [...s.categories, c] }));
+  },
+  /** grade/report/grader: lưu điểm bài nộp */
+  gradeAssign(cmid: number, userid: number, grade: number) {
+    update((s) => ({ ...s, assignGrades: { ...s.assignGrades, [`${cmid}:${userid}`]: grade } }));
+  },
   /** mod/forum/post.php (Site announcements) */
-  postAnnouncement(a: Announcement) {
+  postAnnouncement(a: AdminAnnouncement) {
     update((s) => ({ ...s, announcements: [a, ...s.announcements] }));
   },
   /** course/modedit.php?update= (quiz) */
@@ -255,6 +267,10 @@ function mergeDataset(base: AdminDataset, s: AdminState | null): AdminDataset {
     courses: [...base.courses, ...s.newCourses].map((c) => (s.courses[c.id] ? { ...c, ...s.courses[c.id] } : c)),
     users: [...base.users, ...s.users].map(patchUser),
     cohorts: [...base.cohorts, ...s.cohorts],
+    categories: [...base.categories, ...s.categories].map((c) => ({
+      ...c,
+      coursecount: [...base.courses, ...s.newCourses].filter((x) => (s.courses[x.id]?.categoryid ?? x.categoryid) === c.id).length,
+    })),
     cohortMembers: [...base.cohortMembers, ...s.cohortMembers],
     enrolInstances: [...base.enrolInstances, ...s.enrolInstances]
       .filter((i) => !s.deletedEnrolInstances.includes(i.id))

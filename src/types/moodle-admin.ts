@@ -219,7 +219,7 @@ export interface AdminState {
   /** Phần mới thêm: courseid -> số phần thêm */
   addedSections: Record<number, number>;
   cohorts: Cohort[];
-  announcements: Announcement[];
+  announcements: AdminAnnouncement[];
   quizSettings: Record<number, Partial<QuizSettings>>;
   completion: Record<number, CompletionCriteria>;
   /** Thùng rác: cmid -> thời điểm xóa */
@@ -228,6 +228,10 @@ export interface AdminState {
   enrolStatus: Record<number, 0 | 1>;
   /** Câu hỏi thêm vào quiz (nhập Excel): cmid -> câu hỏi */
   quizQuestions: Record<number, QuizQuestion[]>;
+  /** course/management.php: danh mục mới */
+  categories: CourseCategory[];
+  /** grade/report/grader: điểm bài nộp admin đã chấm, khóa "cmid:userid" */
+  assignGrades: Record<string, number>;
   /** role_assignments thêm khi ghi danh với vai trò khác Học viên */
   roleAssignments: { courseid: number; userid: number; roleid: number }[];
   /** enrol/instances.php: cách ghi danh đã xóa */
@@ -276,4 +280,15 @@ export interface AdminAlert {
   detail: string;
   href: string;
   action: string;
+}
+
+/** Thông báo chung (forum Site announcements): thêm thời gian hiển thị, ghim như form post.php */
+export interface AdminAnnouncement extends Announcement {
+  /** Hiển thị từ (timestart), 0 = ngay */
+  timestart?: number;
+  /** Hiển thị đến (timeend), 0 = không hạn */
+  timeend?: number;
+  pinned?: boolean;
+  /** Gửi email ngay, không chờ 30 phút sửa bài */
+  mailnow?: boolean;
 }

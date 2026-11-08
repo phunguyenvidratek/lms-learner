@@ -28,7 +28,7 @@ import { resolveVideoSource } from "@/lib/video";
 import type { ModName } from "@/types/moodle";
 import type { AdminModule, QuizSettings } from "@/types/moodle-admin";
 import { QuizCoreSections, QuizMoreSections } from "../quiz/quiz-fields";
-import { CheckRow, DateTimeField, DisabledGroupsNote, ExpandAll, Field, FormSection, NativeSelect, StickySaveBar, Textarea } from "../common/form";
+import { CheckRow, DateTimeField, DisabledGroupsNote, FileButton, ExpandAll, Field, FormSection, NativeSelect, StickySaveBar, Textarea } from "../common/form";
 import { AdminPageHeader } from "../layout/page-header";
 import { AvailabilityEditor, type EditableCondition } from "./availability-editor";
 import { CompletionEditor, type CompletionValue } from "./completion-editor";
@@ -283,19 +283,12 @@ export function ModForm({ courseId, mode, children }: { courseId: number; mode: 
           )}
           {modname === "resource" && (
             <Field label="Chọn tệp" required htmlFor="f-filename" error={errors.filename} hint="PDF, PowerPoint, Word, Excel. Tối đa 100 MB.">
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  id="f-filename"
-                  type="file"
-                  accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx"
-                  className="text-sm file:mr-3 file:rounded-md file:border file:border-input file:bg-card file:px-3 file:py-1.5 file:text-sm file:font-medium"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) set({ filename: f.name, name: v.name || f.name.replace(/\.[^.]+$/, "") });
-                  }}
-                />
-                {v.filename && <span className="text-sm text-muted-foreground">Đang dùng: {v.filename}</span>}
-              </div>
+              <FileButton
+                id="f-filename"
+                accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx"
+                fileName={v.filename}
+                onFile={(f) => set({ filename: f.name, name: v.name || f.name.replace(/\.[^.]+$/, "") })}
+              />
             </Field>
           )}
           {modname === "url" && (

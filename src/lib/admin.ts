@@ -343,8 +343,18 @@ export function quizReport(ds: AdminDataset, courseId: number, cmid: number): Qu
 
 // ---------- Bài nộp chờ chấm ----------
 
-export function pendingSubmissions() {
-  return assignSubmissions.filter((x) => x.status === "submitted" && x.grade === null);
+/** Bài nộp kèm điểm (điểm mock + điểm admin chấm trong mockup) */
+export function submissionsOf(ds: AdminDataset, cmid?: number) {
+  return assignSubmissions
+    .filter((x) => cmid === undefined || x.cmid === cmid)
+    .map((x) => {
+      const g = ds.admin?.assignGrades[`${x.cmid}:${x.userid}`];
+      return g === undefined ? x : { ...x, grade: g, timegraded: x.timegraded ?? Math.floor(Date.now() / 1000) };
+    });
+}
+
+export function pendingSubmissions(ds: AdminDataset) {
+  return submissionsOf(ds).filter((x) => x.status === "submitted" && x.grade === null);
 }
 
 // ---------- Tổng quan site ----------
@@ -384,7 +394,7 @@ export function siteOverview(ds: AdminDataset, now: number): SiteOverview {
     activeLearners: active,
     totalLearners: learnerIds.size,
     completionRate: enrolled ? Math.round((completed / enrolled) * 100) : 0,
-    pendingGrading: pendingSubmissions().length,
+    pendingGrading: pendingSubmissions(ds).length,
   };
 }
 
@@ -432,7 +442,11 @@ function withCompletionFields(m: AdminModule): AdminModule {
 /** Nội dung khóa đã gộp thay đổi của admin (thêm phần, thêm/sửa/xóa bài, sửa phần) */
 export function courseSections(ds: AdminDataset, courseId: number): AdminSection[] {
   const a = ds.admin;
-  const base = adminCourseContents(courseId);
+  const raw = adminCourseContents(courseId);
+  // Khóa mới tạo trong mockup: Moodle luôn có phần chung (section 0)
+  const base: CourseSection[] = raw.length
+    ? raw
+    : [{ id: courseId * 1000, name: "Giới thiệu chung", section: 0, summary: "", uservisible: true, modules: [] }];
   const sections: AdminSection[] = base.map((s) => ({
     ...s,
     visible: 1,
@@ -618,7 +632,7 @@ export function sectionSummary(section: AdminSection) {
 
 export function adminAlerts(ds: AdminDataset, now: number): AdminAlert[] {
   const out: AdminAlert[] = [];
-  const pending = pendingSubmissions();
+  const pending = pendingSubmissions(ds);
   for (const cmid of new Set(pending.map((p) => p.cmid))) {
     const found = findAdminModule(ds, cmid);
     if (!found) continue;
@@ -920,4 +934,122 @@ export function enrolMethodName(ds: AdminDataset, inst: EnrolInstance) {
   if (inst.enrol === "cohort") return `Đồng bộ phòng ban: ${ds.cohorts.find((c) => c.id === inst.customint1)?.name ?? ""}`;
   if (inst.enrol === "self") return "Tự ghi danh";
   return "Khách";
+}
+
+// ---------- Dữ liệu báo cáo dựng sẵn (Admin RPT-01) ----------
+
+export type ReportCell = string | number | { text: string; tone?: "success" | "warning" | "danger" | "muted" | "brand"; pct?: number };
+
+export interface ReportTable {
+  columns: string[];
+  rows: ReportCell[][];
+}
+
+const pctCell = (n: number): ReportCell => ({ text: `${n}%`, pct: n });
+const statusCell = (s: CourseView["status"]): ReportCell =>
+  s === "completed" ? { text: "Hoàn thành", tone: "success" } : s === "inprogress" ? { text: "Đang học", tone: "brand" } : { text: "Chưa bắt đầu", tone: "muted" };
+
+function inCohort(ds: AdminDataset, userid: number, cohortid: number | null) {
+  return cohortid === null || ds.cohortMembers.some((m) => m.cohortid === cohortid && m.userid === userid);
+}
+
+const fmtDay = (ts?: number) => (ts ? new Date(ts * 1000).toLocaleDateString("vi-VN") : "Chưa vào");
+
+export function buildReport(ds: AdminDataset, id: string, cohortid: number | null, now: number): ReportTable {
+  const open = ds.courses.filter((c) => c.visible === 1);
+  const rosters = open.map((c) => ({ c, rows: courseRoster(ds, c.id).filter((r) => !r.suspended && inCohort(ds, r.user.id, cohortid)) }));
+
+  if (id === "tien-do-khoa")
+    return {
+      columns: ["Khóa học", "Học viên", "Đang học", "Hoàn thành", "Chưa bắt đầu", "% trung bình", "Tỉ lệ hoàn thành"],
+      rows: rosters.map(({ c, rows }) => {
+        const done = rows.filter((r) => r.status === "completed").length;
+        return [
+          c.fullname,
+          rows.length,
+          rows.filter((r) => r.status === "inprogress").length,
+          done,
+          rows.filter((r) => r.status === "notstarted").length,
+          pctCell(rows.length ? Math.round(rows.reduce((s, r) => s + r.progress, 0) / rows.length) : 0),
+          pctCell(rows.length ? Math.round((done / rows.length) * 100) : 0),
+        ];
+      }),
+    };
+
+  if (id === "tien-do-phong-ban")
+    return {
+      columns: ["Phòng ban", "Số người", "Lượt ghi danh", "Hoàn thành", "Tỉ lệ hoàn thành", "% trung bình"],
+      rows: ds.cohorts
+        .filter((co) => cohortid === null || co.id === cohortid)
+        .map((co) => {
+          const all = rosters.flatMap(({ rows }) => rows.filter((r) => inCohort(ds, r.user.id, co.id)));
+          const done = all.filter((r) => r.status === "completed").length;
+          return [
+            co.name,
+            ds.cohortMembers.filter((m) => m.cohortid === co.id).length,
+            all.length,
+            done,
+            pctCell(all.length ? Math.round((done / all.length) * 100) : 0),
+            pctCell(all.length ? Math.round(all.reduce((s, r) => s + r.progress, 0) / all.length) : 0),
+          ];
+        }),
+    };
+
+  if (id === "chua-hoan-thanh")
+    return {
+      columns: ["Học viên", "Phòng ban", "Khóa học", "Hoàn thành", "Trạng thái", "Truy cập khóa cuối"],
+      rows: rosters.flatMap(({ c, rows }) =>
+        rows
+          .filter((r) => r.status !== "completed" && !r.view?.locked)
+          .map((r) => [r.user.fullname, userCohorts(ds, r.user.id).map((x) => x.name).join(", "), c.fullname, pctCell(r.progress), statusCell(r.status), fmtDay(r.lastaccess)]),
+      ),
+    };
+
+  if (id === "ket-qua-kiem-tra")
+    return {
+      columns: ["Khóa học", "Bài kiểm tra", "Đã làm", "Đạt", "Tỉ lệ đạt", "Điểm trung bình", "Hết lượt chưa đạt"],
+      rows: open.flatMap((c) =>
+        courseSections(ds, c.id)
+          .flatMap((s) => s.modules.filter((m) => m.modname === "quiz"))
+          .map((m) => {
+            const r = quizReport(ds, c.id, m.id)!;
+            const rows = r.rows.filter((x) => inCohort(ds, x.user.id, cohortid));
+            const tried = rows.filter((x) => x.summary.attempts.length);
+            const passed = tried.filter((x) => x.summary.passed).length;
+            const exhausted = rows.filter((x) => x.summary.state === "exhausted").length;
+            const avg = tried.length ? tried.reduce((s, x) => s + (x.summary.best ?? 0), 0) / tried.length : null;
+            return [
+              c.fullname,
+              m.name,
+              tried.length,
+              passed,
+              pctCell(tried.length ? Math.round((passed / tried.length) * 100) : 0),
+              avg === null ? "-" : formatNum(Math.round(avg * 100) / 100),
+              exhausted ? { text: String(exhausted), tone: "danger" as const } : 0,
+            ];
+          }),
+      ),
+    };
+
+  // hoat-dong
+  const learners = new Map<number, AdminUser>();
+  rosters.forEach(({ rows }) => rows.forEach((r) => learners.set(r.user.id, r.user)));
+  return {
+    columns: ["Học viên", "Phòng ban", "Truy cập cuối", "Số ngày không vào", "Khóa đang học", "Tình trạng"],
+    rows: [...learners.values()]
+      .map((u) => ({ u, last: userLastAccess(ds, u) }))
+      .sort((a, b) => a.last - b.last)
+      .map(({ u, last }) => {
+        const days = last ? Math.floor((now - last) / DAY) : null;
+        const learning = rosters.filter(({ rows }) => rows.some((r) => r.user.id === u.id && r.status === "inprogress")).length;
+        return [
+          u.fullname,
+          userCohorts(ds, u.id).map((x) => x.name).join(", "),
+          last ? fmtDay(last) : "Chưa đăng nhập",
+          days === null ? "-" : days,
+          learning,
+          days === null || days > 30 ? { text: "Không hoạt động", tone: "danger" as const } : days > 14 ? { text: "Ít vào", tone: "warning" as const } : { text: "Hoạt động", tone: "success" as const },
+        ];
+      }),
+  };
 }
