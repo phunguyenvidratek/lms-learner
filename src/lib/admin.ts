@@ -556,3 +556,20 @@ export function adminAlerts(ds: AdminDataset, now: number): AdminAlert[] {
   const order: AdminAlert["kind"][] = ["grading", "exhausted", "closing", "noQuestions", "noStudents"];
   return out.sort((x, y) => order.indexOf(x.kind) - order.indexOf(y.kind));
 }
+
+// ---------- Khóa học của tôi (Admin MYC) ----------
+
+/** /my/courses.php: khóa người dùng được ghi danh (mọi vai trò) + khóa họ vừa tạo trong mockup */
+export function myCourses(ds: AdminDataset, userid: number): AdminCourse[] {
+  const created = new Set(ds.admin?.newCourses.map((c) => c.id) ?? []);
+  return ds.courses.filter(
+    (c) => created.has(c.id) || courseEnrolments(ds, c.id, null).some((e) => e.user.id === userid),
+  );
+}
+
+// ---------- Báo cáo dựng sẵn (Admin RPT-01) ----------
+
+export { reportDefs, type ReportDef, type ReportId } from "@/lib/mock/admin/reports";
+
+/** Người đang dùng admin mockup (không qua đăng nhập) */
+export { ADMIN_USER_ID } from "@/lib/mock/admin/users";

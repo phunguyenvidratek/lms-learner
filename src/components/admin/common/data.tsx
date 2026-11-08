@@ -63,7 +63,7 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-1 text-3xl font-bold tracking-tight">{value}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       {href && (
         <span className="mt-3 flex items-center gap-1 text-xs font-medium text-primary">

@@ -4,14 +4,18 @@
  * - Khóa lộ trình chuyên môn (13, 11, 14, 15) và An toàn (12): đồng bộ Chuyên môn HCM, Chuyên môn HN.
  *   Khóa 12 bật đồng bộ 20 ngày trước, khớp thông báo "Bạn được ghi danh..." của learner.
  * - Nền tảng Rejuran có thêm 2 nhân viên kinh doanh ghi danh thủ công.
- * - Giảng viên Võ Thanh Tùng ghi danh thủ công vai trò Giảng viên ở mọi khóa.
+ * - Giảng viên Võ Thanh Tùng và người quản trị Đỗ Ngọc Lan ghi danh thủ công vai trò Giảng viên ở mọi khóa
+ *   (nên khóa hiện trong Khóa học của tôi của họ, như Moodle).
  * - 2 khóa nháp (17, 18) chưa có học viên.
  * Mỗi khóa có sẵn Ghi danh thủ công (bật) và Khách (tắt) như Moodle mặc định.
  */
 import { at } from "@/lib/mock/time";
 import type { EnrolInstance, UserEnrolment } from "@/types/moodle-admin";
 import { adminCourses } from "./courses";
-import { cohortMembers, cohorts, COURSE_CREATOR_ID, ROLE_EDITINGTEACHER, ROLE_STUDENT, users } from "./users";
+import { ADMIN_USER_ID, cohortMembers, cohorts, COURSE_CREATOR_ID, ROLE_EDITINGTEACHER, ROLE_STUDENT, users } from "./users";
+
+/** Người được ghi danh vai trò Giảng viên ở mọi khóa */
+export const TEACHER_IDS = [COURSE_CREATOR_ID, ADMIN_USER_ID];
 
 const syncPlan: Record<number, { cohorts: number[]; since: number }> = {
   16: { cohorts: [1, 2, 3, 4, 5, 6], since: at(-60) },
@@ -45,16 +49,17 @@ for (const course of adminCourses) {
   };
   instances.push(manual);
 
-  // Giảng viên
-  enrolments.push({
-    id: ueSeq++,
-    enrolid: manual.id,
-    userid: COURSE_CREATOR_ID,
-    status: 0,
-    timestart: course.timecreated,
-    timeend: 0,
-    timecreated: course.timecreated,
-  });
+  for (const userid of TEACHER_IDS) {
+    enrolments.push({
+      id: ueSeq++,
+      enrolid: manual.id,
+      userid,
+      status: 0,
+      timestart: course.timecreated,
+      timeend: 0,
+      timecreated: course.timecreated,
+    });
+  }
   for (const userid of manualStudents[course.id] ?? []) {
     enrolments.push({ id: ueSeq++, enrolid: manual.id, userid, status: 0, timestart: at(-45), timeend: 0, timecreated: at(-45) });
   }
@@ -112,7 +117,7 @@ export const courseRoleAssignments: { courseid: number; userid: number; roleid: 
     const key = `${inst.courseid}:${ue.userid}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ courseid: inst.courseid, userid: ue.userid, roleid: ue.userid === COURSE_CREATOR_ID ? ROLE_EDITINGTEACHER : ROLE_STUDENT });
+    out.push({ courseid: inst.courseid, userid: ue.userid, roleid: TEACHER_IDS.includes(ue.userid) ? ROLE_EDITINGTEACHER : ROLE_STUDENT });
   }
   return out;
 })();

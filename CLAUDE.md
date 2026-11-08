@@ -175,8 +175,8 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | Mã | Route mockup | URL Moodle | Trạng thái |
 | --- | --- | --- | --- |
 | SHELL-01..07 | `src/app/admin/layout.tsx` (header, sidebar, page header, tab khóa) | Mọi trang | Đã dựng |
-| DASH-01..04, HOME-01 | /admin | /my/ | Chưa dựng |
-| MYC-01..04 | /admin/my-courses | /my/courses.php | Chưa dựng |
+| DASH-01..04, HOME-01 | /admin | /my/ | Đã dựng |
+| MYC-01..04 | /admin/my-courses | /my/courses.php | Đã dựng |
 | CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Chưa dựng |
 | CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Chưa dựng |
 | CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Chưa dựng |
@@ -219,3 +219,8 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 7. Các điểm chưa chốt còn lại trong backlog: ngôn ngữ admin (SHELL-06), 4 chỉ số Tổng quan (DASH-01),
    mặc định quiz và rule pass (QUIZ-01, ACT-06; mockup dùng 3 lượt, đạt 8/10, điểm cao nhất như learner),
    JS sắp xếp form (ACT-04, CSET-02, COMP-01), plugin chứng nhận (CERT-01), tổ chức question bank (QUIZ-06).
+8. Tổng quan (DASH-01): "Học viên hoạt động 30 ngày" lấy lần truy cập cuối (user.lastaccess) hoặc hoạt động học gần nhất;
+   "Tỉ lệ hoàn thành" = số lượt ghi danh (học viên x khóa đang hiển thị) đã hoàn thành khóa. Cần chốt công thức với Vi.
+   Thẻ "Học viên hoạt động" trỏ tới báo cáo thứ 5 "Học viên hoạt động" (ngoài 4 báo cáo RPT-01).
+9. Khóa học của tôi (MYC): Moodle chỉ hiện khóa người xem được ghi danh. Mockup ghi danh tài khoản Phòng Đào tạo vai trò
+   Giảng viên ở mọi khóa. Thực tế Manager có muốn tự ghi danh vào mọi khóa không, hay xem khóa qua Quản lý khóa?
