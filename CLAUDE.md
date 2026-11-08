@@ -174,7 +174,7 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 
 | Mã | Route mockup | URL Moodle | Trạng thái |
 | --- | --- | --- | --- |
-| SHELL-01..07 | `src/app/admin/layout.tsx` (header, sidebar, page header, tab khóa) | Mọi trang | Chưa dựng |
+| SHELL-01..07 | `src/app/admin/layout.tsx` (header, sidebar, page header, tab khóa) | Mọi trang | Đã dựng |
 | DASH-01..04, HOME-01 | /admin | /my/ | Chưa dựng |
 | MYC-01..04 | /admin/my-courses | /my/courses.php | Chưa dựng |
 | CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Chưa dựng |

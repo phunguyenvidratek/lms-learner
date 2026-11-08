@@ -1,6 +1,7 @@
 /**
  * Chụp màn hình các route để rà giao diện (1280px và 375px).
  * Chạy: node scripts/screenshot.mjs [baseUrl] [outDir] [route1 route2 ...]
+ * Đổi độ rộng: WIDTHS=1280,768,375 node scripts/screenshot.mjs ...
  * Tự đăng nhập bằng tài khoản mẫu và khôi phục dữ liệu ban đầu trước khi chụp.
  */
 import { mkdirSync } from "node:fs";
@@ -11,7 +12,8 @@ const [base = "http://localhost:3000", out = "screenshots", ...routes] = process
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch({ channel: "chrome" });
-for (const width of [1280, 375]) {
+const widths = (process.env.WIDTHS ?? "1280,375").split(",").map(Number);
+for (const width of widths) {
   const ctx = await browser.newContext({ viewport: { width, height: width > 500 ? 800 : 812 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   await page.goto(`${base}/login?reset=1`, { waitUntil: "networkidle" });

@@ -12,38 +12,29 @@
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import { baseDataset, type AdminDataset } from "@/lib/admin";
 import { useLearning } from "@/lib/store/learning-store";
-import type { CourseModule } from "@/types/moodle";
-import type { AdminCourse, AdminUser, CohortMember, EnrolInstance, UserEnrolment } from "@/types/moodle-admin";
+import type { Announcement } from "@/types/moodle";
+import type {
+  AddedModule,
+  AdminCourse,
+  AdminModule,
+  AdminState,
+  AdminUser,
+  Cohort,
+  CohortMember,
+  CompletionCriteria,
+  EnrolInstance,
+  QuizSettings,
+  UserEnrolment,
+} from "@/types/moodle-admin";
 
 const STATE_KEY = "vigo-lms:admin:v1";
 
-/** Bài admin thêm vào một phần của khóa (course/modedit.php?add=...) */
-export interface AddedModule {
-  courseid: number;
-  section: number;
-  module: CourseModule;
-}
-
-export interface AdminState {
-  v: 1;
-  /** course/edit.php: field khóa đã sửa */
-  courses: Record<number, Partial<AdminCourse>>;
-  /** Khóa mới tạo trong mockup */
-  newCourses: AdminCourse[];
-  addedModules: AddedModule[];
-  /** course/modedit.php?update=: field module đã sửa */
-  updatedModules: Record<number, Partial<CourseModule>>;
-  deletedModules: number[];
-  users: AdminUser[];
-  updatedUsers: Record<number, Partial<AdminUser>>;
-  cohortMembers: CohortMember[];
-  enrolInstances: EnrolInstance[];
-  userEnrolments: UserEnrolment[];
-}
+export type { AddedModule, AdminState };
 
 function emptyState(): AdminState {
   return {
     v: 1,
+    editing: true,
     courses: {},
     newCourses: [],
     addedModules: [],
@@ -54,6 +45,14 @@ function emptyState(): AdminState {
     cohortMembers: [],
     enrolInstances: [],
     userEnrolments: [],
+    sections: {},
+    addedSections: {},
+    cohorts: [],
+    announcements: [],
+    quizSettings: {},
+    completion: {},
+    recycle: {},
+    enrolStatus: {},
   };
 }
 
@@ -119,22 +118,89 @@ function update(fn: (s: AdminState) => AdminState) {
 
 // ---------- Actions ----------
 
+let seq = 0;
+/** Id cho bản ghi mới tạo trong mockup (không trùng id mock) */
+export function newId() {
+  seq += 1;
+  return 900000 + (Math.floor(Date.now() / 1000) % 90000) * 10 + (seq % 10);
+}
+
 const actions = {
+  setEditing(editing: boolean) {
+    update((s) => (s.editing === editing ? s : { ...s, editing }));
+  },
+  /** course/edit.php?category= (tạo khóa mới) */
+  createCourse(course: AdminCourse) {
+    update((s) => ({ ...s, newCourses: [...s.newCourses, course] }));
+  },
+  /** course/editsection.php */
+  updateSection(courseid: number, section: number, patch: { name?: string; summary?: string; visible?: number }) {
+    const key = `${courseid}:${section}`;
+    update((s) => ({ ...s, sections: { ...s.sections, [key]: { ...s.sections[key], ...patch } } }));
+  },
+  /** course/changenumsections.php (Thêm phần) */
+  addSection(courseid: number) {
+    update((s) => ({ ...s, addedSections: { ...s.addedSections, [courseid]: (s.addedSections[courseid] ?? 0) + 1 } }));
+  },
+  /** cohort/edit.php */
+  addCohort(cohort: Cohort) {
+    update((s) => ({ ...s, cohorts: [...s.cohorts, cohort] }));
+  },
+  /** cohort/assign.php */
+  addCohortMembers(members: CohortMember[]) {
+    update((s) => ({ ...s, cohortMembers: [...s.cohortMembers, ...members] }));
+  },
+  /** mod/forum/post.php (Site announcements) */
+  postAnnouncement(a: Announcement) {
+    update((s) => ({ ...s, announcements: [a, ...s.announcements] }));
+  },
+  /** course/modedit.php?update= (quiz) */
+  updateQuizSettings(cmid: number, patch: Partial<QuizSettings>) {
+    update((s) => ({ ...s, quizSettings: { ...s.quizSettings, [cmid]: { ...s.quizSettings[cmid], ...patch } } }));
+  },
+  /** course/completion.php */
+  setCompletion(courseid: number, criteria: CompletionCriteria) {
+    update((s) => ({ ...s, completion: { ...s.completion, [courseid]: criteria } }));
+  },
+  /** enrol/instances.php: bật/tắt cách ghi danh */
+  setEnrolStatus(id: number, status: 0 | 1) {
+    update((s) => ({ ...s, enrolStatus: { ...s.enrolStatus, [id]: status } }));
+  },
+  /** admin/tool/recyclebin: khôi phục bài */
+  restoreModule(cmid: number) {
+    update((s) => {
+      const recycle = { ...s.recycle };
+      delete recycle[cmid];
+      return { ...s, recycle, deletedModules: s.deletedModules.filter((x) => x !== cmid) };
+    });
+  },
+  /** admin/tool/recyclebin: xóa hẳn */
+  purgeModule(cmid: number) {
+    update((s) => {
+      const recycle = { ...s.recycle };
+      delete recycle[cmid];
+      return { ...s, recycle };
+    });
+  },
   /** course/edit.php (lưu cài đặt khóa) */
   updateCourse(id: number, patch: Partial<AdminCourse>) {
     update((s) => ({ ...s, courses: { ...s.courses, [id]: { ...s.courses[id], ...patch } } }));
   },
   /** course/modedit.php?add=<modname>&course=&section= */
-  addModule(courseid: number, section: number, module: CourseModule) {
+  addModule(courseid: number, section: number, module: AdminModule) {
     update((s) => ({ ...s, addedModules: [...s.addedModules, { courseid, section, module }] }));
   },
   /** course/modedit.php?update=<cmid> */
-  updateModule(cmid: number, patch: Partial<CourseModule>) {
+  updateModule(cmid: number, patch: Partial<AdminModule>) {
     update((s) => ({ ...s, updatedModules: { ...s.updatedModules, [cmid]: { ...s.updatedModules[cmid], ...patch } } }));
   },
   /** course/mod.php?delete=<cmid> (vào Thùng rác) */
   deleteModule(cmid: number) {
-    update((s) => (s.deletedModules.includes(cmid) ? s : { ...s, deletedModules: [...s.deletedModules, cmid] }));
+    update((s) =>
+      s.deletedModules.includes(cmid)
+        ? s
+        : { ...s, deletedModules: [...s.deletedModules, cmid], recycle: { ...s.recycle, [cmid]: Math.floor(Date.now() / 1000) } },
+    );
   },
   /** user/editadvanced.php?id=-1 */
   addUser(user: AdminUser, cohortid?: number) {
@@ -171,9 +237,13 @@ function mergeDataset(base: AdminDataset, s: AdminState | null): AdminDataset {
     ...base,
     courses: [...base.courses, ...s.newCourses].map((c) => (s.courses[c.id] ? { ...c, ...s.courses[c.id] } : c)),
     users: [...base.users, ...s.users].map(patchUser),
+    cohorts: [...base.cohorts, ...s.cohorts],
     cohortMembers: [...base.cohortMembers, ...s.cohortMembers],
-    enrolInstances: [...base.enrolInstances, ...s.enrolInstances],
+    enrolInstances: [...base.enrolInstances, ...s.enrolInstances].map((i) =>
+      s.enrolStatus[i.id] !== undefined ? { ...i, status: s.enrolStatus[i.id] } : i,
+    ),
     userEnrolments: [...base.userEnrolments, ...s.userEnrolments],
+    admin: s,
   };
 }
 
