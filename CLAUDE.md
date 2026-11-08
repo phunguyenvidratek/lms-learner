@@ -179,9 +179,9 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 | MYC-01..04 | /admin/my-courses | /my/courses.php | Đã dựng |
 | CAT-01..03 | /admin/courses?categoryid= | /course/management.php?categoryid= | Chưa dựng |
 | CSET-01..03 | /admin/courses/new?category=, /admin/courses/[id]/settings | /course/edit.php?category=, /course/edit.php?id= | Chưa dựng |
-| CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Chưa dựng |
-| CED-07 | Nút Xem như học viên | /course/switchrole.php?id=&switchrole=5 (mockup mở learner /courses/[id]) | Chưa dựng |
-| ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Chưa dựng |
+| CED-01..07 | /admin/courses/[id]/edit | /course/view.php?id=&edit=on | Đã dựng |
+| CED-07 | Nút Xem như học viên | /course/switchrole.php?id=&switchrole=5 (mockup mở learner /courses/[id]) | Đã dựng |
+| ACT-01..07, QUIZ-01 | /admin/courses/[id]/modedit?add=&section=, ?update= | /course/modedit.php?add=&course=&section=, ?update= | Đã dựng ACT (quiz ở QUIZ-01) |
 | QUIZ-02, 03 | /admin/quiz/[cmId]/edit | /mod/quiz/edit.php?cmid= | Chưa dựng |
 | QUIZ-04 | /admin/quiz/[cmId]/import | /local/quizexcel/import.php?cmid= | Chưa dựng |
 | QUIZ-05 | /admin/quiz/[cmId]/results | /mod/quiz/report.php?id=&mode=overview | Chưa dựng |
@@ -207,9 +207,9 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
    không có trang cấp site. Mockup đề xuất trang chọn khóa rồi vào bank của khóa. Có chấp nhận không?
 2. Bài kiểm tra, bài học admin thêm trong mockup không hiện bên learner (đã chốt: chỉ lưu store admin).
    Khi trình bày cần nói rõ đây là giới hạn của mockup, không phải của Moodle.
-3. Bài chờ chấm (DASH-01, DASH-03): nội dung hiện chỉ có video, bài đọc, tài liệu, link, quiz tự chấm, chưa có
-   Assignment nên chỉ số luôn bằng 0. VIGO có dùng bài nộp (bài thu hoạch, liên quan câu 3 phía learner) không,
-   hay thay bằng "học viên hết lượt chưa đạt"?
+3. Bài chờ chấm (DASH-01, DASH-03): nội dung mẫu chỉ có 1 bài nộp (Bài thu hoạch, Rejuran Internal Training Phần 4,
+   không tính hoàn thành), mock 2 bài nộp, 1 chờ chấm (`src/lib/mock/admin/submissions.ts`). VIGO có dùng bài nộp
+   rộng rãi không (liên quan câu 3 phía learner), hay thay chỉ số này bằng "học viên hết lượt chưa đạt"?
 4. Video Drive (ACT-02, CED-01): mockup dựng theo hướng A (module `mod_drivevideo` riêng: tên, link Drive, thời lượng,
    xem trước) cho khớp learner. Chưa chốt (Điểm chưa chốt số 2, người chốt: Thiện, Đạt Trần, Duy).
 5. Phòng ban (ENR-02, USER-01, USER-02, COH-01): mockup theo đề xuất BA, cohort là chuẩn ghi danh và có thêm
@@ -224,3 +224,9 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
    Thẻ "Học viên hoạt động" trỏ tới báo cáo thứ 5 "Học viên hoạt động" (ngoài 4 báo cáo RPT-01).
 9. Khóa học của tôi (MYC): Moodle chỉ hiện khóa người xem được ghi danh. Mockup ghi danh tài khoản Phòng Đào tạo vai trò
    Giảng viên ở mọi khóa. Thực tế Manager có muốn tự ghi danh vào mọi khóa không, hay xem khóa qua Quản lý khóa?
+10. Bảng chọn loại bài (ACT-01): "Thông báo" trong 7 loại đang hiểu là mod_forum loại Thông báo. Đúng ý VIGO không,
+    hay là Văn bản và hình ảnh (mod_label)? "Liên kết" (mod_url) đang có trong nội dung mẫu nhưng nằm ở tab Tất cả.
+11. Mặc định hoàn thành (ACT-06): mockup đặt Tài liệu = Xem bài theo backlog, trong khi nội dung learner hiện tại
+    để Tài liệu là học viên tự đánh dấu (LEARN-09). Chốt một quy tắc.
+12. Xem như học viên (CED-07): mockup mở learner portal, khóa đang ẩn thì nút bị tắt vì learner không có khóa ẩn.
+    Moodle thật dùng Switch role, xem được cả khóa ẩn.

@@ -68,7 +68,9 @@ export type ModName =
   | "feedback"
   | "glossary"
   | "qbank"
-  | "drivevideo";
+  | "drivevideo"
+  /** Moodle 5: phần con (mod_subsection), chỉ admin mockup tạo */
+  | "subsection";
 
 /** core_course_get_contents > sections[].modules[] */
 export interface CourseModule {

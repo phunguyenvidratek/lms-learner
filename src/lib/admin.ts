@@ -16,6 +16,7 @@ import {
 import { adminCourses, categories, draftCourseContents, draftQuizzes } from "@/lib/mock/admin/courses";
 import { courseRoleAssignments, enrolInstances, userEnrolments } from "@/lib/mock/admin/enrolments";
 import { buildProfileState } from "@/lib/mock/admin/learner-profiles";
+import { assignSubmissions } from "@/lib/mock/admin/submissions";
 import { cohortMembers, cohorts, roles, ROLE_STUDENT, users } from "@/lib/mock/admin/users";
 import { courseContents, quizzes, siteInfo } from "@/lib/mock/data";
 import { DAY } from "@/lib/mock/time";
@@ -275,6 +276,12 @@ export function quizReport(ds: AdminDataset, courseId: number, cmid: number): Qu
   };
 }
 
+// ---------- Bài nộp chờ chấm ----------
+
+export function pendingSubmissions() {
+  return assignSubmissions.filter((x) => x.status === "submitted" && x.grade === null);
+}
+
 // ---------- Tổng quan site ----------
 
 export interface SiteOverview {
@@ -285,10 +292,7 @@ export interface SiteOverview {
   totalLearners: number;
   /** % lượt ghi danh (học viên x khóa đang hiển thị) đã hoàn thành khóa */
   completionRate: number;
-  /**
-   * Bài nộp chờ chấm (mod_assign). Nội dung mẫu chưa có Assignment nên luôn 0,
-   * xem Câu hỏi cho BA (admin) trong CLAUDE.md.
-   */
+  /** Bài nộp chờ chấm (mod_assign: đã nộp, chưa có điểm) */
   pendingGrading: number;
 }
 
@@ -315,7 +319,7 @@ export function siteOverview(ds: AdminDataset, now: number): SiteOverview {
     activeLearners: active,
     totalLearners: learnerIds.size,
     completionRate: enrolled ? Math.round((completed / enrolled) * 100) : 0,
-    pendingGrading: 0,
+    pendingGrading: pendingSubmissions().length,
   };
 }
 
@@ -337,6 +341,7 @@ export const MOD_TYPE_LABEL: Record<ModName, string> = {
   book: "Sách",
   h5pactivity: "H5P",
   glossary: "Thuật ngữ",
+  subsection: "Phần con",
 };
 
 /** Điều kiện mở phần theo quy tắc của learner (learning.ts): đạt bài kiểm tra phần trước */
@@ -451,12 +456,31 @@ function formatNum(n: number) {
 }
 
 export interface AvailabilityCondition {
-  type: "completion" | "grade" | "date";
+  type: "completion" | "grade" | "date" | "profile";
   cm?: number;
   e?: 0 | 1;
   min?: number;
   d?: ">=" | "<";
   t?: number;
+  /** profile: trường hồ sơ, phép so sánh, giá trị */
+  sf?: "department" | "email" | "institution" | "city";
+  op?: "isequalto" | "contains" | "startswith";
+  v?: string;
+}
+
+export interface AvailabilityTree {
+  op: "&" | "|";
+  c: AvailabilityCondition[];
+}
+
+export function parseAvailabilityTree(json: string | null | undefined): AvailabilityTree {
+  if (!json) return { op: "&", c: [] };
+  try {
+    const t = JSON.parse(json) as { op?: "&" | "|"; c?: AvailabilityCondition[] };
+    return { op: t.op === "|" ? "|" : "&", c: t.c ?? [] };
+  } catch {
+    return { op: "&", c: [] };
+  }
 }
 
 export function parseAvailability(json: string | null | undefined): AvailabilityCondition[] {
@@ -469,10 +493,13 @@ export function parseAvailability(json: string | null | undefined): Availability
   }
 }
 
-export function buildAvailability(conds: AvailabilityCondition[]): string | null {
+export function buildAvailability(conds: AvailabilityCondition[], op: "&" | "|" = "&"): string | null {
   if (!conds.length) return null;
-  return JSON.stringify({ op: "&", c: conds, showc: conds.map(() => true) });
+  return op === "&" ? JSON.stringify({ op, c: conds, showc: conds.map(() => true) }) : JSON.stringify({ op, c: conds, show: true });
 }
+
+const PROFILE_FIELD = { department: "Chức danh", email: "Email", institution: "Đơn vị", city: "Thành phố" };
+const PROFILE_OP = { isequalto: "là", contains: "có chứa", startswith: "bắt đầu bằng" };
 
 /** Mô tả điều kiện mở: ngắn cho chip (CED-02), đủ cho phần chi tiết */
 export function describeCondition(ds: AdminDataset, c: AvailabilityCondition): { short: string; full: string } {
@@ -482,6 +509,10 @@ export function describeCondition(ds: AdminDataset, c: AvailabilityCondition): {
     const q = c.cm ? adminQuiz(c.cm) : undefined;
     const pts = q && c.min != null ? `${formatNum((c.min / 100) * q.grade)}/${formatNum(q.grade)}` : `${c.min}%`;
     return { short: `Cần đạt ${pts}: ${name}`, full: `Đạt từ ${pts} điểm ở "${name}"` };
+  }
+  if (c.type === "profile") {
+    const t = `${PROFILE_FIELD[c.sf ?? "department"]} ${PROFILE_OP[c.op ?? "isequalto"]} "${c.v ?? ""}"`;
+    return { short: t, full: t };
   }
   const when = c.t ? new Date(c.t * 1000).toLocaleDateString("vi-VN") : "";
   return c.d === "<"
@@ -504,6 +535,20 @@ export function sectionSummary(section: AdminSection) {
 
 export function adminAlerts(ds: AdminDataset, now: number): AdminAlert[] {
   const out: AdminAlert[] = [];
+  const pending = pendingSubmissions();
+  for (const cmid of new Set(pending.map((p) => p.cmid))) {
+    const found = findAdminModule(ds, cmid);
+    if (!found) continue;
+    const n = pending.filter((p) => p.cmid === cmid).length;
+    out.push({
+      id: `grading-${cmid}`,
+      kind: "grading",
+      title: `${n} bài nộp chờ chấm: ${found.module.name}`,
+      detail: found.course.fullname,
+      href: `/admin/courses/${found.course.id}/grades`,
+      action: "Chấm bài",
+    });
+  }
   for (const c of ds.courses) {
     const students = courseEnrolments(ds, c.id).filter((e) => !e.suspended);
     if (!students.length)
@@ -573,3 +618,48 @@ export { reportDefs, type ReportDef, type ReportId } from "@/lib/mock/admin/repo
 
 /** Người đang dùng admin mockup (không qua đăng nhập) */
 export { ADMIN_USER_ID } from "@/lib/mock/admin/users";
+
+// ---------- Tạo bài mới (Admin ACT-06: mặc định hoàn thành theo loại) ----------
+
+/**
+ * Default activity completion cấp site (Site administration > Courses > Default activity completion):
+ * Video = xem 90%, Bài đọc, Tài liệu, Liên kết = xem bài, Bài kiểm tra = đạt điểm, Bài nộp = có điểm.
+ * Văn bản, Diễn đàn, Phần con không theo dõi.
+ */
+export function defaultCompletion(modname: ModName): Pick<
+  AdminModule,
+  "completion" | "completionview" | "completionpercent" | "completionusegrade" | "completionpassgrade"
+> {
+  switch (modname) {
+    case "drivevideo":
+      return { completion: 2, completionpercent: 90 };
+    case "quiz":
+      return { completion: 2, completionusegrade: 1, completionpassgrade: 1 };
+    case "assign":
+      return { completion: 2, completionusegrade: 1 };
+    case "page":
+    case "resource":
+    case "url":
+    case "book":
+    case "folder":
+    case "h5pactivity":
+    case "feedback":
+      return { completion: 2, completionview: 1 };
+    default:
+      return { completion: 0 };
+  }
+}
+
+export function createModule(id: number, modname: ModName, name: string, extra: Partial<AdminModule> = {}): AdminModule {
+  return {
+    id,
+    instance: id,
+    name,
+    modname,
+    url: `/mod/${modname}/view.php?id=${id}`,
+    uservisible: true,
+    visible: 1,
+    ...defaultCompletion(modname),
+    ...extra,
+  };
+}

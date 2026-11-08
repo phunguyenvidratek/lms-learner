@@ -108,7 +108,14 @@ export function DashboardView({ events, announcements }: { events: CalendarEvent
               href="/admin/reports/hoat-dong"
             />
             <StatCard label="Tỉ lệ hoàn thành" value={`${o.completionRate}%`} hint="Lượt ghi danh đã hoàn thành khóa" icon={CheckCircle2} tone="success" href="/admin/reports/tien-do-phong-ban" />
-            <StatCard label="Bài chờ chấm" value={o.pendingGrading} hint="Chưa có bài nộp cần chấm" icon={Inbox} tone="muted" href="/admin/reports/ket-qua-kiem-tra" />
+            <StatCard
+              label="Bài chờ chấm"
+              value={o.pendingGrading}
+              hint={o.pendingGrading ? "Bài nộp chưa có điểm" : "Không có bài nộp cần chấm"}
+              icon={Inbox}
+              tone={o.pendingGrading ? "warning" : "muted"}
+              href="/admin/reports/ket-qua-kiem-tra"
+            />
           </div>
 
           <section aria-labelledby="loi-tat">
