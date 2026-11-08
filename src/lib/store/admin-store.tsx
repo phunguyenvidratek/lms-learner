@@ -134,6 +134,10 @@ export function newId() {
 }
 
 const actions = {
+  /** SHELL-04: lưu trạng thái thu gọn sidebar như user preference */
+  setSidebarCollapsed(v: boolean) {
+    update((s) => ({ ...s, sidebarCollapsed: v }));
+  },
   setEditing(editing: boolean) {
     update((s) => (s.editing === editing ? s : { ...s, editing }));
   },

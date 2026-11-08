@@ -202,6 +202,8 @@ export interface AdminState {
   v: 1;
   /** Công tắc Chế độ chỉnh sửa trên thanh trên cùng (user preference editing của Moodle) */
   editing: boolean;
+  /** SHELL-04: sidebar thu gọn (user preference) */
+  sidebarCollapsed?: boolean;
   /** course/edit.php: field khóa đã sửa */
   courses: Record<number, Partial<AdminCourse>>;
   newCourses: AdminCourse[];

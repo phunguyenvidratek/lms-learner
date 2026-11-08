@@ -168,7 +168,7 @@ export function CourseManagementView({ initialCategory }: { initialCategory: num
             />
           ) : (
             <TableWrap>
-              <Table>
+              <Table className="min-w-[760px]">
                 <thead>
                   <tr>
                     <Th className="w-10">

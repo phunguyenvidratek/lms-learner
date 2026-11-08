@@ -139,6 +139,8 @@ chỉ đổi cách trình bày (thứ tự, nhãn, gom nhóm) theo backlog.
 2. Ảnh hiện trạng Moodle: `docs/admin/reference/moodle-admin/<tên>.jpg`, tên khớp cột Ảnh trong backlog
    (backlog ghi `docs/reference/moodle-admin`, đường dẫn thật có thêm `admin/`).
 3. Prompt từng phiên: `docs/admin/admin-mockup-prompts.md`.
+4. Kết quả rà soát (bảng mã backlog, chỗ lệch Moodle cần quyết): `docs/admin/admin-review.md`.
+   Ảnh chụp mọi route admin 1280px và 375px: `docs/screenshots/admin`.
 
 ### Ràng buộc
 
